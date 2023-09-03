@@ -1,0 +1,4 @@
+{
+	"spec": ["./dist/spec/*.js"],
+	"require": ["ts-node/register", "source-map-support/register"]
+}

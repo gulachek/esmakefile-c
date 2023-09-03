@@ -1,0 +1,17 @@
+{
+	"include": ["src/**/*.ts"],
+	"compilerOptions": {
+		"target": "es6",
+		"module": "es6",
+		"moduleResolution": "node16",
+		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true,
+		"outDir": "dist",
+		"declaration": true,
+		"declarationDir": "types",
+		"sourceMap": true,
+		"noImplicitAny": true,
+		"noImplicitOverride": true,
+		"forceConsistentCasingInFileNames": true
+	}
+}

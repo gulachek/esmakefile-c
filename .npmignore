@@ -1,0 +1,7 @@
+build
+node_modules
+dist/example
+dist/spec
+types/example
+types/spec
+test-cases

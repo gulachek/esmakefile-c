@@ -1,0 +1,13 @@
+node_modules
+libroot
+build
+test-src
+dist
+types
+install
+*.swp
+.vscode
+.vs
+.cache
+coverage
+.nyc_output

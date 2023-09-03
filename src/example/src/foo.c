@@ -1,3 +1,3 @@
 #include "foo.h"
 
-int foo() { return 4; }
+int foo() { return FOO_RETURN; }

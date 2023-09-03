@@ -11,5 +11,8 @@ cli((book, opts) => {
 	c.addExecutable({
 		output: 'hello',
 		src: ['src/hello.c', 'src/foo.c'],
+		definitions: {
+			FOO_RETURN: '4',
+		},
 	});
 });

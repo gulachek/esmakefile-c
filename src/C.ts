@@ -22,7 +22,11 @@ export class C {
 			includes.add(this._book.abs(Path.src(i)));
 		}
 
-		const src = opts.src.map((s) => this._makeTranslationUnit(s, includes));
+		const defs = opts.definitions || {};
+
+		const src = opts.src.map((s) =>
+			this._makeTranslationUnit(s, includes, defs),
+		);
 		this._compiler.addCExecutable(this._book, {
 			output,
 			src,
@@ -32,12 +36,13 @@ export class C {
 	private _makeTranslationUnit(
 		src: PathLike,
 		includes: Set<string>,
+		defs: Record<string, string>,
 	): ICTranslationUnit {
 		return {
 			src: Path.src(src),
 			cVersion: this._cVersion,
 			includePaths: includes,
-			definitions: {},
+			definitions: defs,
 		};
 	}
 }
@@ -53,4 +58,6 @@ export interface IAddExecutableOpts {
 
 	/** default ['include'] */
 	includePaths?: Iterable<PathLike>;
+
+	definitions?: Record<string, string>;
 }

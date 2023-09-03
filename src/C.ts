@@ -15,18 +15,28 @@ export class C {
 
 	public addExecutable(opts: IAddExecutableOpts): void {
 		const output = Path.build(opts.output);
-		const src = opts.src.map((s) => this._makeTranslationUnit(s));
+
+		const includes = new Set<string>();
+		const rawIncludesPaths = opts.includePaths || ['include'];
+		for (const i of rawIncludesPaths) {
+			includes.add(this._book.abs(Path.src(i)));
+		}
+
+		const src = opts.src.map((s) => this._makeTranslationUnit(s, includes));
 		this._compiler.addCExecutable(this._book, {
 			output,
 			src,
 		});
 	}
 
-	private _makeTranslationUnit(src: PathLike): ICTranslationUnit {
+	private _makeTranslationUnit(
+		src: PathLike,
+		includes: Set<string>,
+	): ICTranslationUnit {
 		return {
 			src: Path.src(src),
 			cVersion: this._cVersion,
-			includePaths: [],
+			includePaths: includes,
 			definitions: {},
 		};
 	}
@@ -40,4 +50,7 @@ export interface ICOpts {
 export interface IAddExecutableOpts {
 	output: BuildPathLike;
 	src: PathLike[];
+
+	/** default ['include'] */
+	includePaths?: Iterable<PathLike>;
 }

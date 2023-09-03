@@ -10,6 +10,6 @@ cli((book, opts) => {
 
 	c.addExecutable({
 		output: 'hello',
-		src: ['src/hello.c'],
+		src: ['src/hello.c', 'src/foo.c'],
 	});
 });

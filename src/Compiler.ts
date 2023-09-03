@@ -5,7 +5,7 @@ export type CVersion = 'C89' | 'C99' | 'C11' | 'C17';
 export interface ICTranslationUnit {
 	src: Path;
 	cVersion: CVersion;
-	includePaths: string[];
+	includePaths: Set<string>;
 	definitions: Record<string, string>;
 }
 

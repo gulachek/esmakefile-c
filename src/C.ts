@@ -1,19 +1,25 @@
 import { BuildPathLike, Cookbook, Path, PathLike } from 'gulpachek';
-import { AppleClang } from './AppleClang.js';
-import { CVersion, ICCompiler, ICTranslationUnit } from './Compiler.js';
+import {
+	CBinLibraryFor,
+	CVersion,
+	ICCompiler,
+	ICTranslationUnit,
+} from './Compiler.js';
 
-export class C {
+export class C<TCompiler extends ICCompiler<unknown>> {
 	private _book: Cookbook;
-	private _compiler: ICCompiler;
+	private _compiler: TCompiler;
 	private _cVersion: CVersion;
 
-	constructor(opts: ICOpts) {
+	constructor(compiler: TCompiler, opts: ICOpts) {
 		this._book = opts.book;
-		this._compiler = new AppleClang();
+		this._compiler = compiler;
 		this._cVersion = opts.cVersion;
 	}
 
-	public addExecutable(opts: IAddExecutableOpts): void {
+	public addExecutable(
+		opts: IAddExecutableOpts<CBinLibraryFor<TCompiler>>,
+	): void {
 		const output = Path.build(opts.output);
 
 		const includes = new Set<string>();
@@ -30,7 +36,34 @@ export class C {
 		this._compiler.addCExecutable(this._book, {
 			output,
 			src,
+			link: opts.link || [],
 		});
+	}
+
+	public addLibrary(opts: IAddLibraryOpts): CBinLibraryFor<TCompiler> {
+		const name = opts.name;
+		const outputDirectory = Path.build(opts.outputDirectory || '/');
+
+		const includes = new Set<string>();
+		const rawIncludesPaths = opts.includePaths || ['include'];
+		for (const i of rawIncludesPaths) {
+			includes.add(this._book.abs(Path.src(i)));
+		}
+
+		const defs = opts.definitions || {};
+
+		const src = opts.src.map((s) =>
+			this._makeTranslationUnit(s, includes, defs),
+		);
+
+		return this._compiler.addCLibrary(this._book, {
+			name,
+			outputDirectory,
+			src,
+			includePaths: includes,
+			definitions: defs,
+			cVersion: this._cVersion,
+		}) as CBinLibraryFor<TCompiler>;
 	}
 
 	private _makeTranslationUnit(
@@ -52,12 +85,23 @@ export interface ICOpts {
 	cVersion: CVersion;
 }
 
-export interface IAddExecutableOpts {
+export interface IAddExecutableOpts<TBinLibrary> {
 	output: BuildPathLike;
 	src: PathLike[];
 
 	/** default ['include'] */
 	includePaths?: Iterable<PathLike>;
 
+	definitions?: Record<string, string>;
+
+	link?: TBinLibrary[];
+}
+
+export interface IAddLibraryOpts {
+	name: string;
+	outputDirectory?: BuildPathLike;
+	src: PathLike[];
+
+	includePaths?: Iterable<PathLike>;
 	definitions?: Record<string, string>;
 }

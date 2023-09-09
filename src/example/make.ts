@@ -21,6 +21,6 @@ cli((book, opts) => {
 	c.addExecutable({
 		output: 'hello',
 		src: ['src/hello.c'],
-		link: [foo, 'zlib', 'sqlite3'],
+		link: [foo, 'zlib', 'sqlite3', 'core-graphics'],
 	});
 });

@@ -1,0 +1,8 @@
+Name: Core Graphics
+Description: Apple Carbon Core Graphics Library
+
+Version: 13.5.1
+URL: https://developer.apple.com/documentation/corefoundation/1388772-cfarraygetcount?language=objc
+Libs: -framework CoreGraphics
+Cflags: -framework CoreGraphics
+Requires: core-foundation = 13.5.1

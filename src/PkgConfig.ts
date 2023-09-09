@@ -30,13 +30,13 @@ interface IPackageConfigJson {
 }
 
 export class PkgConfig {
-	private _dir: string;
 	private _jsonPath: string;
+	private _localModsPath: string;
 	private _jsonObj: Promise<IPackageConfigJson> | null = null;
 
 	constructor(dir: string) {
-		this._dir = dir;
 		this._jsonPath = join(dir, 'pkgconfig.json');
+		this._localModsPath = join(dir, 'pkgconfig');
 	}
 
 	public libs(names: string[]): Promise<PkgConfigFlags> {
@@ -68,6 +68,10 @@ export class PkgConfig {
 	private async spawn(args: string[]): Promise<IProcExit> {
 		const proc = spawn('pkg-config', args, {
 			stdio: 'pipe',
+			env: {
+				...process.env,
+				PKG_CONFIG_PATH: this._localModsPath,
+			},
 		});
 
 		return waitStreams(proc);

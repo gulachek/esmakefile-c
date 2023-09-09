@@ -33,6 +33,7 @@ export class C<TCompiler extends ICCompiler<unknown>> {
 		const src = opts.src.map((s) =>
 			this._makeTranslationUnit(s, includes, defs),
 		);
+
 		this._compiler.addCExecutable(this._book, {
 			output,
 			src,
@@ -94,7 +95,7 @@ export interface IAddExecutableOpts<TBinLibrary> {
 
 	definitions?: Record<string, string>;
 
-	link?: TBinLibrary[];
+	link?: (TBinLibrary | string)[];
 }
 
 export interface IAddLibraryOpts {

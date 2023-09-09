@@ -1,17 +1,20 @@
 import {
-	Cookbook,
-	IBuildPath,
-	IRecipe,
-	Path,
-	RecipeBuildArgs,
-} from 'gulpachek';
-import {
 	CVersion,
 	ICCompiler,
 	ICExecutableOpts,
 	ICLibraryOpts,
 	ICTranslationUnit,
 } from './Compiler.js';
+
+import { isFailure, PkgConfig } from './PkgConfig.js';
+
+import {
+	Cookbook,
+	IBuildPath,
+	IRecipe,
+	Path,
+	RecipeBuildArgs,
+} from 'gulpachek';
 
 import { ChildProcess, spawn } from 'node:child_process';
 
@@ -22,7 +25,7 @@ interface ICompileInfo {
 }
 
 export interface IAppleClangLibrary {
-	binaryPath: string | IBuildPath;
+	binaryPath: IBuildPath;
 	compileInfo: ICompileInfo;
 }
 
@@ -70,18 +73,43 @@ export class AppleClang implements ICCompiler<IAppleClangLibrary> {
 		opts: ICExecutableOpts<IAppleClangLibrary>,
 	): void {
 		const { src, output, link } = opts;
-		const compileInfo = libCompileInfo(link);
+		const pkgConfig = new PkgConfig(book.srcRoot);
+
+		const pkgConfigLibs: string[] = [];
+		const projectLibs: IAppleClangLibrary[] = [];
+
+		for (const lib of link) {
+			if (typeof lib === 'string') {
+				pkgConfigLibs.push(lib);
+			} else {
+				projectLibs.push(lib);
+			}
+		}
+
+		const compileInfo = libCompileInfo(projectLibs);
 
 		const objPaths: IBuildPath[] = [];
 
 		for (const tu of src) {
 			const out = Path.gen(tu.src, { ext: '.o' });
-			const obj = new AppleClangObject(tu, out, compileInfo);
+			const obj = new AppleClangObject(
+				pkgConfig,
+				tu,
+				out,
+				compileInfo,
+				pkgConfigLibs,
+			);
 			objPaths.push(out);
 			book.add(obj);
 		}
 
-		const exe = new AppleClangExecutable(objPaths, output, opts.link);
+		const exe = new AppleClangExecutable(
+			pkgConfig,
+			objPaths,
+			output,
+			pkgConfigLibs,
+			projectLibs,
+		);
 		book.add(exe);
 	}
 
@@ -90,11 +118,13 @@ export class AppleClang implements ICCompiler<IAppleClangLibrary> {
 			opts;
 		const output = outputDirectory.join(`${name}.dylib`);
 
+		const pkgConfig = new PkgConfig(book.srcRoot);
+
 		const objPaths: IBuildPath[] = [];
 
 		for (const tu of src) {
 			const out = Path.gen(tu.src, { ext: '.o' });
-			const obj = new AppleClangObject(tu, out);
+			const obj = new AppleClangObject(pkgConfig, tu, out);
 			objPaths.push(out);
 			book.add(obj);
 		}
@@ -111,14 +141,24 @@ export class AppleClang implements ICCompiler<IAppleClangLibrary> {
 }
 
 class AppleClangObject implements IRecipe {
+	pkgConfig: PkgConfig;
 	translationUnit: ICTranslationUnit;
 	out: IBuildPath;
 	compileInfo?: ICompileInfo;
+	pkgConfigLibs: string[];
 
-	constructor(src: ICTranslationUnit, out: IBuildPath, info?: ICompileInfo) {
+	constructor(
+		pkgConfig: PkgConfig,
+		src: ICTranslationUnit,
+		out: IBuildPath,
+		info?: ICompileInfo,
+		pkgConfigLibs?: string[],
+	) {
+		this.pkgConfig = pkgConfig;
 		this.translationUnit = src;
 		this.out = out;
 		this.compileInfo = info;
+		this.pkgConfigLibs = pkgConfigLibs || [];
 	}
 
 	sources() {
@@ -166,27 +206,41 @@ class AppleClangObject implements IRecipe {
 			clangArgs.push(`-D${key}=${val}`);
 		}
 
+		if (this.pkgConfigLibs.length) {
+			const result = await this.pkgConfig.cflags(this.pkgConfigLibs);
+			if (isFailure(result)) {
+				args.logStream.write(result.stderr);
+				return false;
+			} else {
+				clangArgs.push(...result.value);
+			}
+		}
+
 		return spawnAsync('clang', clangArgs, args);
 	}
 }
 
 class AppleClangExecutable implements IRecipe {
+	pkgConfig: PkgConfig;
 	objs: Path[];
 	out: IBuildPath;
 	libTargets: IBuildPath[] = [];
-	importLibs: string[] = [];
+	pkgConfigLibs: string[] = [];
 
-	constructor(objs: Path[], out: IBuildPath, libs: IAppleClangLibrary[]) {
+	constructor(
+		pkgConfig: PkgConfig,
+		objs: Path[],
+		out: IBuildPath,
+		pkgConfigLibs: string[],
+		libs: IAppleClangLibrary[],
+	) {
+		this.pkgConfig = pkgConfig;
 		this.objs = objs;
 		this.out = out;
+		this.pkgConfigLibs = pkgConfigLibs || [];
 
 		for (const lib of libs) {
-			const path = lib.binaryPath;
-			if (typeof path === 'string') {
-				this.importLibs.push(path);
-			} else {
-				this.libTargets.push(path);
-			}
+			this.libTargets.push(lib.binaryPath);
 		}
 	}
 
@@ -202,7 +256,17 @@ class AppleClangExecutable implements IRecipe {
 		const { sources, targets } = args.paths<AppleClangExecutable>();
 
 		const clangArgs = baseClangArgs();
-		clangArgs.push('-o', targets, ...sources, ...this.importLibs);
+		clangArgs.push('-o', targets, ...sources);
+
+		if (this.pkgConfigLibs.length) {
+			const result = await this.pkgConfig.libs(this.pkgConfigLibs);
+			if (isFailure(result)) {
+				args.logStream.write(result.stderr);
+				return false;
+			} else {
+				clangArgs.push(...result.value);
+			}
+		}
 
 		return spawnAsync('clang', clangArgs, args);
 	}

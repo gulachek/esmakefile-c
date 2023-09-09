@@ -8,9 +8,6 @@ cli((book, opts) => {
 		cVersion: 'C17',
 	});
 
-	// how to find zlib?
-	// when building from source, should find source library of zlib
-	//
 	const foo = c.addLibrary({
 		name: 'foo',
 		outputDirectory: 'foolib',
@@ -24,9 +21,6 @@ cli((book, opts) => {
 	c.addExecutable({
 		output: 'hello',
 		src: ['src/hello.c'],
-		definitions: {
-			FOO_RETURN: '4',
-		},
-		link: [foo],
+		link: [foo, 'zlib', 'sqlite3'],
 	});
 });

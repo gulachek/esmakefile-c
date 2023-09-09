@@ -33,7 +33,7 @@ export interface ICCompiler<
 export interface ICExecutableOpts<TBinLibrary> {
 	output: IBuildPath;
 	src: ICTranslationUnit[];
-	link: TBinLibrary[];
+	link: (string | TBinLibrary)[];
 }
 
 export interface ICLibraryOpts {

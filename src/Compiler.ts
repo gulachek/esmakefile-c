@@ -38,6 +38,7 @@ export interface ICExecutableOpts<TBinLibrary> {
 
 export interface ICLibraryOpts {
 	name: string;
+	version: string;
 	outputDirectory: IBuildPath;
 	src: ICTranslationUnit[];
 

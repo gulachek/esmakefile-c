@@ -42,7 +42,7 @@ export class C<TCompiler extends ICCompiler<unknown>> {
 	}
 
 	public addLibrary(opts: IAddLibraryOpts): CBinLibraryFor<TCompiler> {
-		const name = opts.name;
+		const { name, version } = opts;
 		const outputDirectory = Path.build(opts.outputDirectory || '/');
 
 		const includes = new Set<string>();
@@ -59,6 +59,7 @@ export class C<TCompiler extends ICCompiler<unknown>> {
 
 		return this._compiler.addCLibrary(this._book, {
 			name,
+			version,
 			outputDirectory,
 			src,
 			includePaths: includes,
@@ -100,6 +101,7 @@ export interface IAddExecutableOpts<TBinLibrary> {
 
 export interface IAddLibraryOpts {
 	name: string;
+	version: string;
 	outputDirectory?: BuildPathLike;
 	src: PathLike[];
 

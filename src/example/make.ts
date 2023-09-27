@@ -10,6 +10,7 @@ cli((book, opts) => {
 
 	const foo = c.addLibrary({
 		name: 'foo',
+		version: '1.0.0',
 		outputDirectory: 'foolib',
 		definitions: {
 			FOO_RETURN: '4',

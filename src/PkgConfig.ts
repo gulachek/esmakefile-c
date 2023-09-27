@@ -1,7 +1,9 @@
 import { ChildProcess, spawn } from 'node:child_process';
 import { Writable } from 'node:stream';
 import { join } from 'node:path';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
+import { Cookbook, IRecipe, Path, RecipeBuildArgs } from 'gulpachek';
+import { platform } from 'node:os';
 
 export type PkgConfigSuccess<T> = {
 	value: T;
@@ -29,14 +31,72 @@ interface IPackageConfigJson {
 	dependencies: Record<string, string>;
 }
 
+interface IPackageOpts {
+	packageName: string;
+	version: string;
+	name?: string;
+	description?: string;
+	cflags?: string;
+	libs?: string;
+}
+
+class PackageRecipe implements IRecipe {
+	private _packageName: string;
+	private _name: string;
+	private _version: string;
+	private _cflags?: string;
+	private _libs?: string;
+	private _description?: string;
+
+	constructor(opts: IPackageOpts) {
+		this._packageName = opts.packageName;
+		this._name = opts.name || opts.packageName;
+		this._description = opts.description;
+		this._version = opts.version;
+		this._cflags = opts.cflags;
+		this._libs = opts.libs;
+	}
+
+	targets() {
+		return Path.build(`pkgconfig/${this._packageName}.pc`);
+	}
+
+	async buildAsync(args: RecipeBuildArgs): Promise<boolean> {
+		const { targets } = args.paths<PackageRecipe>();
+		const lines = [
+			`Name: ${this._name}`,
+			`Version: ${this._version}`,
+			`Description: ${this._description || '(no description)'}`,
+		];
+
+		if (this._cflags) lines.push(`Cflags: ${this._cflags}`);
+		if (this._libs) lines.push(`Libs: ${this._libs}`);
+
+		await writeFile(targets, lines.join('\n'), 'utf8');
+		return true;
+	}
+}
+
 export class PkgConfig {
+	private _book: Cookbook;
+
 	private _jsonPath: string;
 	private _localModsPath: string;
 	private _jsonObj: Promise<IPackageConfigJson> | null = null;
 
-	constructor(dir: string) {
-		this._jsonPath = join(dir, 'pkgconfig.json');
-		this._localModsPath = join(dir, 'pkgconfig');
+	constructor(book: Cookbook) {
+		const { srcRoot, buildRoot } = book;
+		this._book = book;
+		this._jsonPath = join(srcRoot, 'pkgconfig.json');
+
+		const sep = platform() === 'win32' ? ';' : ':';
+		this._localModsPath = [buildRoot, srcRoot]
+			.map((s) => join(s, 'pkgconfig'))
+			.join(sep);
+	}
+
+	public addPackage(opts: IPackageOpts): void {
+		this._book.add(new PackageRecipe(opts));
 	}
 
 	public libs(names: string[]): Promise<PkgConfigFlags> {

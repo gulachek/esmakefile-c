@@ -73,7 +73,7 @@ export class AppleClang implements ICCompiler<IAppleClangLibrary> {
 		opts: ICExecutableOpts<IAppleClangLibrary>,
 	): void {
 		const { src, output, link } = opts;
-		const pkgConfig = new PkgConfig(book.srcRoot);
+		const pkgConfig = new PkgConfig(book);
 
 		const pkgConfigLibs: string[] = [];
 		const projectLibs: IAppleClangLibrary[] = [];
@@ -114,11 +114,19 @@ export class AppleClang implements ICCompiler<IAppleClangLibrary> {
 	}
 
 	addCLibrary(book: Cookbook, opts: ICLibraryOpts): IAppleClangLibrary {
-		const { src, name, outputDirectory, cVersion, includePaths, definitions } =
-			opts;
-		const output = outputDirectory.join(`${name}.dylib`);
+		const {
+			src,
+			name,
+			version,
+			outputDirectory,
+			cVersion,
+			includePaths,
+			definitions,
+		} = opts;
 
-		const pkgConfig = new PkgConfig(book.srcRoot);
+		const output = outputDirectory.join(`lib${name}.dylib`);
+
+		const pkgConfig = new PkgConfig(book);
 
 		const objPaths: IBuildPath[] = [];
 
@@ -135,6 +143,13 @@ export class AppleClang implements ICCompiler<IAppleClangLibrary> {
 			definitions,
 		});
 		book.add(dylib);
+
+		pkgConfig.addPackage({
+			packageName: name,
+			version,
+			cflags: [...includePaths].map((i) => `-I${i}`).join(' '),
+			libs: `-L${book.abs(outputDirectory)} -l${name}`,
+		});
 
 		return dylib;
 	}

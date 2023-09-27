@@ -96,8 +96,8 @@ export class AppleClang implements ICCompiler<IAppleClangLibrary> {
 				pkgConfig,
 				tu,
 				out,
-				compileInfo,
 				pkgConfigLibs,
+				compileInfo,
 			);
 			objPaths.push(out);
 			book.add(obj);
@@ -122,6 +122,7 @@ export class AppleClang implements ICCompiler<IAppleClangLibrary> {
 			cVersion,
 			includePaths,
 			definitions,
+			link,
 		} = opts;
 
 		const output = outputDirectory.join(`lib${name}.dylib`);
@@ -132,12 +133,12 @@ export class AppleClang implements ICCompiler<IAppleClangLibrary> {
 
 		for (const tu of src) {
 			const out = Path.gen(tu.src, { ext: '.o' });
-			const obj = new AppleClangObject(pkgConfig, tu, out);
+			const obj = new AppleClangObject(pkgConfig, tu, out, link);
 			objPaths.push(out);
 			book.add(obj);
 		}
 
-		const dylib = new AppleClangDylib(objPaths, output, {
+		const dylib = new AppleClangDylib(pkgConfig, objPaths, output, link, {
 			cVersion,
 			includePaths,
 			definitions,
@@ -166,8 +167,8 @@ class AppleClangObject implements IRecipe {
 		pkgConfig: PkgConfig,
 		src: ICTranslationUnit,
 		out: IBuildPath,
+		pkgConfigLibs: string[],
 		info?: ICompileInfo,
-		pkgConfigLibs?: string[],
 	) {
 		this.pkgConfig = pkgConfig;
 		this.translationUnit = src;
@@ -291,11 +292,21 @@ class AppleClangDylib implements IRecipe, IAppleClangLibrary {
 	objs: Path[];
 	binaryPath: IBuildPath;
 	compileInfo: ICompileInfo;
+	pkgConfig: PkgConfig;
+	pkgConfigLibs: string[];
 
-	constructor(objs: Path[], out: IBuildPath, compileInfo: ICompileInfo) {
+	constructor(
+		pkgConfig: PkgConfig,
+		objs: Path[],
+		out: IBuildPath,
+		pkgConfigLibs: string[],
+		compileInfo: ICompileInfo,
+	) {
+		this.pkgConfig = pkgConfig;
 		this.objs = objs;
 		this.binaryPath = out;
 		this.compileInfo = compileInfo;
+		this.pkgConfigLibs = pkgConfigLibs;
 	}
 
 	sources() {
@@ -312,6 +323,16 @@ class AppleClangDylib implements IRecipe, IAppleClangLibrary {
 		const clangArgs = baseClangArgs();
 		clangArgs.push('-dynamiclib');
 		clangArgs.push('-o', targets, ...sources);
+
+		if (this.pkgConfigLibs.length) {
+			const result = await this.pkgConfig.libs(this.pkgConfigLibs);
+			if (isFailure(result)) {
+				args.logStream.write(result.stderr);
+				return false;
+			} else {
+				clangArgs.push(...result.value);
+			}
+		}
 
 		return spawnAsync('clang', clangArgs, args);
 	}

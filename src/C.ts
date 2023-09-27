@@ -65,6 +65,7 @@ export class C<TCompiler extends ICCompiler<unknown>> {
 			includePaths: includes,
 			definitions: defs,
 			cVersion: this._cVersion,
+			link: opts.link || [],
 		}) as CBinLibraryFor<TCompiler>;
 	}
 
@@ -107,4 +108,5 @@ export interface IAddLibraryOpts {
 
 	includePaths?: Iterable<PathLike>;
 	definitions?: Record<string, string>;
+	link?: string[];
 }

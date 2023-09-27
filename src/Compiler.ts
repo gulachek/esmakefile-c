@@ -41,6 +41,7 @@ export interface ICLibraryOpts {
 	version: string;
 	outputDirectory: IBuildPath;
 	src: ICTranslationUnit[];
+	link: string[];
 
 	// API
 	includePaths: Set<string>;

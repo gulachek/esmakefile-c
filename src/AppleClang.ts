@@ -115,6 +115,8 @@ export class AppleClang implements ICCompiler {
 		);
 		book.add(dylib);
 
+		this.libraries.set(name, dylib);
+
 		pkgConfig.addPackage({
 			packageName: name,
 			version,

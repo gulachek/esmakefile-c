@@ -1,12 +1,7 @@
 import { BuildPathLike, Cookbook, Path, PathLike } from 'gulpachek';
-import {
-	CBinLibraryFor,
-	CVersion,
-	ICCompiler,
-	ICTranslationUnit,
-} from './Compiler.js';
+import { CVersion, ICCompiler, ICTranslationUnit } from './Compiler.js';
 
-export class C<TCompiler extends ICCompiler<unknown>> {
+export class C<TCompiler extends ICCompiler> {
 	private _book: Cookbook;
 	private _compiler: TCompiler;
 	private _cVersion: CVersion;
@@ -17,10 +12,8 @@ export class C<TCompiler extends ICCompiler<unknown>> {
 		this._cVersion = opts.cVersion;
 	}
 
-	public addExecutable(
-		opts: IAddExecutableOpts<CBinLibraryFor<TCompiler>>,
-	): void {
-		const output = Path.build(opts.output);
+	public addExecutable(opts: IAddExecutableOpts): void {
+		const output = Path.build(opts.outputDirectory || '/').join(opts.name);
 
 		const includes = new Set<string>();
 		const rawIncludesPaths = opts.includePaths || ['include'];
@@ -41,7 +34,7 @@ export class C<TCompiler extends ICCompiler<unknown>> {
 		});
 	}
 
-	public addLibrary(opts: IAddLibraryOpts): CBinLibraryFor<TCompiler> {
+	public addLibrary(opts: IAddLibraryOpts): void {
 		const { name, version } = opts;
 		const outputDirectory = Path.build(opts.outputDirectory || '/');
 
@@ -57,7 +50,7 @@ export class C<TCompiler extends ICCompiler<unknown>> {
 			this._makeTranslationUnit(s, includes, defs),
 		);
 
-		return this._compiler.addCLibrary(this._book, {
+		this._compiler.addCLibrary(this._book, {
 			name,
 			version,
 			outputDirectory,
@@ -66,7 +59,7 @@ export class C<TCompiler extends ICCompiler<unknown>> {
 			definitions: defs,
 			cVersion: this._cVersion,
 			link: opts.link || [],
-		}) as CBinLibraryFor<TCompiler>;
+		});
 	}
 
 	private _makeTranslationUnit(
@@ -88,8 +81,9 @@ export interface ICOpts {
 	cVersion: CVersion;
 }
 
-export interface IAddExecutableOpts<TBinLibrary> {
-	output: BuildPathLike;
+export interface IAddExecutableOpts {
+	name: string;
+	outputDirectory?: BuildPathLike;
 	src: PathLike[];
 
 	/** default ['include'] */
@@ -97,7 +91,7 @@ export interface IAddExecutableOpts<TBinLibrary> {
 
 	definitions?: Record<string, string>;
 
-	link?: (TBinLibrary | string)[];
+	link?: string[];
 }
 
 export interface IAddLibraryOpts {

@@ -140,7 +140,7 @@ export class PkgConfig {
 	/** name -> name + version constraint */
 	private async query(names: string[]): Promise<string[]> {
 		const obj = await this.jsonObj();
-		return names.map((n) => nameToVersionedName(n, obj));
+		return names.map((n) => this.nameToVersionedName(n, obj));
 	}
 
 	private jsonObj(): Promise<IPackageConfigJson> {
@@ -152,6 +152,26 @@ export class PkgConfig {
 		});
 
 		return this._jsonObj;
+	}
+
+	private hasTargetPackage(name: string): boolean {
+		// TODO - add a hasTarget
+		const targets = this._book.targets();
+		return targets.indexOf(`pkgconfig/${name}.pc`) !== -1;
+	}
+
+	private nameToVersionedName(name: string, json: IPackageConfigJson): string {
+		if (this.hasTargetPackage(name)) return name;
+
+		const version = json.dependencies[name];
+
+		if (!version) {
+			throw new Error(
+				`'${name}' is not listed as a dependency in pkgconfig.json`,
+			);
+		}
+
+		return `${name} ${version}`;
 	}
 }
 
@@ -193,16 +213,4 @@ class StringBuffer extends Writable {
 	public str(): string {
 		return Buffer.concat(this._chunks).toString();
 	}
-}
-
-function nameToVersionedName(name: string, json: IPackageConfigJson): string {
-	const version = json.dependencies[name];
-
-	if (!version) {
-		throw new Error(
-			`'${name}' is not listed as a dependency in pkgconfig.json`,
-		);
-	}
-
-	return `${name} ${version}`;
 }

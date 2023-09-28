@@ -8,8 +8,10 @@ cli((book, opts) => {
 		cVersion: 'C17',
 	});
 
-	const foo = c.addLibrary({
-		name: 'foo',
+	const foo = 'foo';
+
+	c.addLibrary({
+		name: foo,
 		version: '1.0.0',
 		outputDirectory: 'foolib',
 		definitions: {
@@ -20,7 +22,7 @@ cli((book, opts) => {
 	});
 
 	c.addExecutable({
-		output: 'hello',
+		name: 'hello',
 		src: ['src/hello.c'],
 		link: [foo, 'zlib', 'sqlite3', 'core-graphics'],
 	});

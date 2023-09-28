@@ -24,9 +24,8 @@ interface ICompileInfo {
 	definitions: Record<string, string>;
 }
 
-export interface IAppleClangLibrary {
+interface IAppleClangLibrary {
 	binaryPath: IBuildPath;
-	compileInfo: ICompileInfo;
 }
 
 function maxCVersion(a: CVersion, b: CVersion): CVersion {
@@ -53,52 +52,30 @@ function mergeCompileInfo(base: ICompileInfo, add: ICompileInfo): void {
 	}
 }
 
-function libCompileInfo(libs: IAppleClangLibrary[]): ICompileInfo {
-	const info: ICompileInfo = {
-		cVersion: 'C89',
-		definitions: {},
-		includePaths: new Set<string>(),
-	};
+export class AppleClang implements ICCompiler {
+	libraries: Map<string, IAppleClangLibrary> = new Map();
 
-	for (const lib of libs) {
-		mergeCompileInfo(info, lib.compileInfo);
+	private libs(libNames: string[]): IAppleClangLibrary[] {
+		const libs: IAppleClangLibrary[] = [];
+		for (const name of libNames) {
+			const lib = this.libraries.get(name);
+			if (lib) libs.push(lib);
+		}
+
+		return libs;
 	}
 
-	return info;
-}
-
-export class AppleClang implements ICCompiler<IAppleClangLibrary> {
-	addCExecutable(
-		book: Cookbook,
-		opts: ICExecutableOpts<IAppleClangLibrary>,
-	): void {
+	addCExecutable(book: Cookbook, opts: ICExecutableOpts): void {
 		const { src, output, link } = opts;
 		const pkgConfig = new PkgConfig(book);
 
-		const pkgConfigLibs: string[] = [];
-		const projectLibs: IAppleClangLibrary[] = [];
-
-		for (const lib of link) {
-			if (typeof lib === 'string') {
-				pkgConfigLibs.push(lib);
-			} else {
-				projectLibs.push(lib);
-			}
-		}
-
-		const compileInfo = libCompileInfo(projectLibs);
+		const projectLibs = this.libs(link);
 
 		const objPaths: IBuildPath[] = [];
 
 		for (const tu of src) {
 			const out = Path.gen(tu.src, { ext: '.o' });
-			const obj = new AppleClangObject(
-				pkgConfig,
-				tu,
-				out,
-				pkgConfigLibs,
-				compileInfo,
-			);
+			const obj = new AppleClangObject(pkgConfig, tu, out, link);
 			objPaths.push(out);
 			book.add(obj);
 		}
@@ -107,23 +84,14 @@ export class AppleClang implements ICCompiler<IAppleClangLibrary> {
 			pkgConfig,
 			objPaths,
 			output,
-			pkgConfigLibs,
+			link,
 			projectLibs,
 		);
 		book.add(exe);
 	}
 
-	addCLibrary(book: Cookbook, opts: ICLibraryOpts): IAppleClangLibrary {
-		const {
-			src,
-			name,
-			version,
-			outputDirectory,
-			cVersion,
-			includePaths,
-			definitions,
-			link,
-		} = opts;
+	addCLibrary(book: Cookbook, opts: ICLibraryOpts): void {
+		const { src, name, version, outputDirectory, includePaths, link } = opts;
 
 		const output = outputDirectory.join(`lib${name}.dylib`);
 
@@ -138,11 +106,13 @@ export class AppleClang implements ICCompiler<IAppleClangLibrary> {
 			book.add(obj);
 		}
 
-		const dylib = new AppleClangDylib(pkgConfig, objPaths, output, link, {
-			cVersion,
-			includePaths,
-			definitions,
-		});
+		const dylib = new AppleClangDylib(
+			pkgConfig,
+			objPaths,
+			output,
+			link,
+			this.libs(link),
+		);
 		book.add(dylib);
 
 		pkgConfig.addPackage({
@@ -151,8 +121,6 @@ export class AppleClang implements ICCompiler<IAppleClangLibrary> {
 			cflags: [...includePaths].map((i) => `-I${i}`).join(' '),
 			libs: `-L${book.abs(outputDirectory)} -l${name}`,
 		});
-
-		return dylib;
 	}
 }
 
@@ -291,26 +259,29 @@ class AppleClangExecutable implements IRecipe {
 class AppleClangDylib implements IRecipe, IAppleClangLibrary {
 	objs: Path[];
 	binaryPath: IBuildPath;
-	compileInfo: ICompileInfo;
 	pkgConfig: PkgConfig;
 	pkgConfigLibs: string[];
+	libTargets: IBuildPath[];
 
 	constructor(
 		pkgConfig: PkgConfig,
 		objs: Path[],
 		out: IBuildPath,
 		pkgConfigLibs: string[],
-		compileInfo: ICompileInfo,
+		libs: IAppleClangLibrary[],
 	) {
 		this.pkgConfig = pkgConfig;
 		this.objs = objs;
 		this.binaryPath = out;
-		this.compileInfo = compileInfo;
 		this.pkgConfigLibs = pkgConfigLibs;
+		this.libTargets = [];
+		for (const lib of libs) {
+			this.libTargets.push(lib.binaryPath);
+		}
 	}
 
 	sources() {
-		return this.objs;
+		return [...this.objs, ...this.libTargets];
 	}
 
 	targets() {
@@ -322,6 +293,7 @@ class AppleClangDylib implements IRecipe, IAppleClangLibrary {
 
 		const clangArgs = baseClangArgs();
 		clangArgs.push('-dynamiclib');
+		// TODO - prune out libTargets from over linking
 		clangArgs.push('-o', targets, ...sources);
 
 		if (this.pkgConfigLibs.length) {

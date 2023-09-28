@@ -9,31 +9,24 @@ export interface ICTranslationUnit {
 	definitions: Record<string, string>;
 }
 
-export type CBinLibraryFor<TCompiler> = TCompiler extends ICCompiler<
-	infer TBinLibrary
->
-	? TBinLibrary
-	: never;
-
 /**
  * C compiler for building C libraries
  * and executables
  */
 export interface ICCompiler<
-	TBinLibrary,
 	TLibraryOpts extends ICLibraryOpts = ICLibraryOpts,
 > {
 	/** Compile and link a C executable */
-	addCExecutable(book: Cookbook, opts: ICExecutableOpts<TBinLibrary>): void;
+	addCExecutable(book: Cookbook, opts: ICExecutableOpts): void;
 
 	/** Compile and link a C library */
-	addCLibrary(book: Cookbook, opts: TLibraryOpts): TBinLibrary;
+	addCLibrary(book: Cookbook, opts: TLibraryOpts): void;
 }
 
-export interface ICExecutableOpts<TBinLibrary> {
+export interface ICExecutableOpts {
 	output: IBuildPath;
 	src: ICTranslationUnit[];
-	link: (string | TBinLibrary)[];
+	link: string[];
 }
 
 export interface ICLibraryOpts {

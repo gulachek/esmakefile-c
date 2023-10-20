@@ -154,6 +154,7 @@ export class AppleClang implements ICCompiler {
 			const out = Path.gen(tu.src, { ext: '.o' });
 			const json = Path.gen(tu.src, { ext: '.json' });
 			const obj = new AppleClangObject(pkgConfig, tu, out, json, imports);
+			this.compileCommands.add(json);
 			objPaths.push(out);
 			book.add(obj);
 		}

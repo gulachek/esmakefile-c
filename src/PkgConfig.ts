@@ -1,7 +1,7 @@
 import { ChildProcess, spawn } from 'node:child_process';
 import { Writable } from 'node:stream';
 import { join } from 'node:path';
-import { readFile, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import { Cookbook, IRule, Path, RecipeArgs, IBuildPath } from 'gulpachek';
 import { platform } from 'node:os';
 
@@ -27,11 +27,6 @@ export function isFailure<T>(
 }
 
 export type PkgConfigFlags = PkgConfigResult<string[]>;
-
-interface IPackageConfigJson {
-	/** name -> version constraint */
-	dependencies: Record<string, string>;
-}
 
 interface IPackageOpts {
 	packageName: string;
@@ -84,14 +79,11 @@ class PackageRecipe implements IRule {
 export class PkgConfig {
 	private _book: Cookbook;
 
-	private _jsonPath: string;
 	private _localModsPath: string;
-	private _jsonObj: Promise<IPackageConfigJson> | null = null;
 
 	constructor(book: Cookbook) {
 		const { srcRoot, buildRoot } = book;
 		this._book = book;
-		this._jsonPath = join(srcRoot, 'pkgconfig.json');
 
 		const sep = platform() === 'win32' ? ';' : ':';
 		this._localModsPath = [buildRoot, srcRoot]
@@ -117,7 +109,7 @@ export class PkgConfig {
 		shellFlag: string,
 		names: PkgSearchable[],
 	): Promise<PkgConfigFlags> {
-		const queries = await this.query(names);
+		const queries = this.query(names);
 
 		const { success, stdout, stderr } = await this.spawn([
 			shellFlag,
@@ -143,27 +135,12 @@ export class PkgConfig {
 		return waitStreams(proc);
 	}
 
-	/** name -> name + version constraint */
-	private async query(names: PkgSearchable[]): Promise<string[]> {
-		const obj = await this.jsonObj();
-		return names.map((n) => this.nameToVersionedName(n, obj));
+	/** name/rel-path -> name/abs-path */
+	private query(names: PkgSearchable[]): string[] {
+		return names.map((n) => this.resolveName(n));
 	}
 
-	private jsonObj(): Promise<IPackageConfigJson> {
-		if (this._jsonObj) return this._jsonObj;
-
-		this._jsonObj = new Promise<IPackageConfigJson>(async (res) => {
-			const contents = await readFile(this._jsonPath, 'utf8');
-			res(JSON.parse(contents) as IPackageConfigJson);
-		});
-
-		return this._jsonObj;
-	}
-
-	private nameToVersionedName(
-		name: PkgSearchable,
-		json: IPackageConfigJson,
-	): string {
+	private resolveName(name: PkgSearchable): string {
 		const path = Path.build(name);
 		const targets = new Set(this._book.targets());
 
@@ -173,15 +150,7 @@ export class PkgConfig {
 			throw new Error(`Invalid pkgconfig search for '${name}'`);
 		}
 
-		const version = json.dependencies[name];
-
-		if (!version) {
-			throw new Error(
-				`'${name}' is not listed as a dependency in pkgconfig.json`,
-			);
-		}
-
-		return `${name} ${version}`;
+		return name;
 	}
 }
 

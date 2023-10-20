@@ -1,7 +1,0 @@
-{
-	"dependencies": {
-		"zlib": ">= 1.2.11",
-		"sqlite3": ">= 3.24.0",
-		"core-graphics": ">= 13.5.1"
-	}
-}

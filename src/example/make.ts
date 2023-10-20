@@ -1,4 +1,4 @@
-import { cli } from 'gulpachek';
+import { cli, Path } from 'gulpachek';
 import { C, platformCompiler } from '../index.js';
 
 cli((book, opts) => {
@@ -8,10 +8,10 @@ cli((book, opts) => {
 		cVersion: 'C17',
 	});
 
-	const foo = 'foo';
+	book.add('all', [Path.build('hello'), Path.build('compile_commands.json')]);
 
-	c.addLibrary({
-		name: foo,
+	const lib = c.addLibrary({
+		name: 'foo',
 		version: '1.0.0',
 		outputDirectory: 'foolib',
 		definitions: {
@@ -24,6 +24,8 @@ cli((book, opts) => {
 	c.addExecutable({
 		name: 'hello',
 		src: ['src/hello.c'],
-		link: [foo, 'zlib', 'sqlite3', 'core-graphics'],
+		link: [lib, 'zlib', 'sqlite3', 'core-graphics'],
 	});
+
+	c.addCompileCommands();
 });

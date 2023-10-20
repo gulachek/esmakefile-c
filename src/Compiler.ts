@@ -2,6 +2,8 @@ import { Cookbook, IBuildPath, Path } from 'gulpachek';
 
 export type CVersion = 'C89' | 'C99' | 'C11' | 'C17';
 
+export type Linkable = string | IBuildPath;
+
 export interface ICTranslationUnit {
 	src: Path;
 	cVersion: CVersion;
@@ -20,13 +22,15 @@ export interface ICCompiler<
 	addCExecutable(book: Cookbook, opts: ICExecutableOpts): void;
 
 	/** Compile and link a C library */
-	addCLibrary(book: Cookbook, opts: TLibraryOpts): void;
+	addCLibrary(book: Cookbook, opts: TLibraryOpts): IBuildPath;
+
+	addCompileCommands(book: Cookbook): void;
 }
 
 export interface ICExecutableOpts {
 	output: IBuildPath;
 	src: ICTranslationUnit[];
-	link: string[];
+	link: Linkable[];
 }
 
 export interface ICLibraryOpts {
@@ -34,7 +38,7 @@ export interface ICLibraryOpts {
 	version: string;
 	outputDirectory: IBuildPath;
 	src: ICTranslationUnit[];
-	link: string[];
+	link: Linkable[];
 
 	// API
 	includePaths: Set<string>;

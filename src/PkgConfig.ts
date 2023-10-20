@@ -2,8 +2,10 @@ import { ChildProcess, spawn } from 'node:child_process';
 import { Writable } from 'node:stream';
 import { join } from 'node:path';
 import { readFile, writeFile } from 'node:fs/promises';
-import { Cookbook, IRecipe, Path, RecipeBuildArgs } from 'gulpachek';
+import { Cookbook, IRule, Path, RecipeArgs, IBuildPath } from 'gulpachek';
 import { platform } from 'node:os';
+
+export type PkgSearchable = string | IBuildPath;
 
 export type PkgConfigSuccess<T> = {
 	value: T;
@@ -40,8 +42,9 @@ interface IPackageOpts {
 	libs?: string;
 }
 
-class PackageRecipe implements IRecipe {
+class PackageRecipe implements IRule {
 	private _packageName: string;
+	public pc: IBuildPath;
 	private _name: string;
 	private _version: string;
 	private _cflags?: string;
@@ -55,14 +58,15 @@ class PackageRecipe implements IRecipe {
 		this._version = opts.version;
 		this._cflags = opts.cflags;
 		this._libs = opts.libs;
+		this.pc = Path.build(`pkgconfig/${this._packageName}.pc`);
 	}
 
 	targets() {
-		return Path.build(`pkgconfig/${this._packageName}.pc`);
+		return this.pc;
 	}
 
-	async buildAsync(args: RecipeBuildArgs): Promise<boolean> {
-		const { targets } = args.paths<PackageRecipe>();
+	async recipe(args: RecipeArgs): Promise<boolean> {
+		const pkg = args.abs(this.pc);
 		const lines = [
 			`Name: ${this._name}`,
 			`Version: ${this._version}`,
@@ -72,7 +76,7 @@ class PackageRecipe implements IRecipe {
 		if (this._cflags) lines.push(`Cflags: ${this._cflags}`);
 		if (this._libs) lines.push(`Libs: ${this._libs}`);
 
-		await writeFile(targets, lines.join('\n'), 'utf8');
+		await writeFile(pkg, lines.join('\n'), 'utf8');
 		return true;
 	}
 }
@@ -95,21 +99,23 @@ export class PkgConfig {
 			.join(sep);
 	}
 
-	public addPackage(opts: IPackageOpts): void {
-		this._book.add(new PackageRecipe(opts));
+	public addPackage(opts: IPackageOpts): IBuildPath {
+		const pkg = new PackageRecipe(opts);
+		this._book.add(pkg);
+		return pkg.pc;
 	}
 
-	public libs(names: string[]): Promise<PkgConfigFlags> {
+	public libs(names: PkgSearchable[]): Promise<PkgConfigFlags> {
 		return this.flags('--libs', names);
 	}
 
-	public cflags(names: string[]): Promise<PkgConfigFlags> {
+	public cflags(names: PkgSearchable[]): Promise<PkgConfigFlags> {
 		return this.flags('--cflags', names);
 	}
 
 	private async flags(
 		shellFlag: string,
-		names: string[],
+		names: PkgSearchable[],
 	): Promise<PkgConfigFlags> {
 		const queries = await this.query(names);
 
@@ -138,7 +144,7 @@ export class PkgConfig {
 	}
 
 	/** name -> name + version constraint */
-	private async query(names: string[]): Promise<string[]> {
+	private async query(names: PkgSearchable[]): Promise<string[]> {
 		const obj = await this.jsonObj();
 		return names.map((n) => this.nameToVersionedName(n, obj));
 	}
@@ -154,14 +160,18 @@ export class PkgConfig {
 		return this._jsonObj;
 	}
 
-	private hasTargetPackage(name: string): boolean {
-		// TODO - add a hasTarget
-		const targets = this._book.targets();
-		return targets.indexOf(`pkgconfig/${name}.pc`) !== -1;
-	}
+	private nameToVersionedName(
+		name: PkgSearchable,
+		json: IPackageConfigJson,
+	): string {
+		const path = Path.build(name);
+		const targets = new Set(this._book.targets());
 
-	private nameToVersionedName(name: string, json: IPackageConfigJson): string {
-		if (this.hasTargetPackage(name)) return name;
+		if (path.extname === '.pc' && targets.has(path.rel())) {
+			return this._book.abs(path);
+		} else if (typeof name !== 'string') {
+			throw new Error(`Invalid pkgconfig search for '${name}'`);
+		}
 
 		const version = json.dependencies[name];
 

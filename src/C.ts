@@ -1,5 +1,10 @@
-import { BuildPathLike, Cookbook, Path, PathLike } from 'gulpachek';
-import { CVersion, ICCompiler, ICTranslationUnit } from './Compiler.js';
+import { BuildPathLike, Cookbook, Path, PathLike, IBuildPath } from 'gulpachek';
+import {
+	CVersion,
+	ICCompiler,
+	ICTranslationUnit,
+	Linkable,
+} from './Compiler.js';
 
 export class C<TCompiler extends ICCompiler> {
 	private _book: Cookbook;
@@ -10,6 +15,12 @@ export class C<TCompiler extends ICCompiler> {
 		this._book = opts.book;
 		this._compiler = compiler;
 		this._cVersion = opts.cVersion;
+	}
+
+	// TODO - this shouldn't be necessary. Should be able to dynamicall
+	// add dependencies
+	public addCompileCommands(): void {
+		this._compiler.addCompileCommands(this._book);
 	}
 
 	public addExecutable(opts: IAddExecutableOpts): void {
@@ -34,7 +45,7 @@ export class C<TCompiler extends ICCompiler> {
 		});
 	}
 
-	public addLibrary(opts: IAddLibraryOpts): void {
+	public addLibrary(opts: IAddLibraryOpts): IBuildPath {
 		const { name, version } = opts;
 		const outputDirectory = Path.build(opts.outputDirectory || '/');
 
@@ -50,7 +61,7 @@ export class C<TCompiler extends ICCompiler> {
 			this._makeTranslationUnit(s, includes, defs),
 		);
 
-		this._compiler.addCLibrary(this._book, {
+		return this._compiler.addCLibrary(this._book, {
 			name,
 			version,
 			outputDirectory,
@@ -91,7 +102,7 @@ export interface IAddExecutableOpts {
 
 	definitions?: Record<string, string>;
 
-	link?: string[];
+	link?: Linkable[];
 }
 
 export interface IAddLibraryOpts {
@@ -102,5 +113,5 @@ export interface IAddLibraryOpts {
 
 	includePaths?: Iterable<PathLike>;
 	definitions?: Record<string, string>;
-	link?: string[];
+	link?: Linkable[];
 }

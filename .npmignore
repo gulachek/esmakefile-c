@@ -5,3 +5,5 @@ dist/spec
 types/example
 types/spec
 test-cases
+.nyc_output
+.cache

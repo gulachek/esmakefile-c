@@ -9,7 +9,7 @@ import {
 
 import { isFailure, PkgConfig, PkgSearchable } from './PkgConfig.js';
 
-import { Cookbook, IBuildPath, IRule, Path, RecipeArgs } from 'gulpachek';
+import { Cookbook, IBuildPath, IRule, Path, RecipeArgs } from 'iheartmake';
 
 import { open } from 'node:fs/promises';
 

@@ -1,4 +1,4 @@
-import { Cookbook, IBuildPath, Path } from 'gulpachek';
+import { Cookbook, IBuildPath, Path } from 'iheartmake';
 
 export type CVersion = 'C89' | 'C99' | 'C11' | 'C17';
 

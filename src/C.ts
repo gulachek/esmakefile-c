@@ -1,4 +1,10 @@
-import { BuildPathLike, Cookbook, Path, PathLike, IBuildPath } from 'gulpachek';
+import {
+	BuildPathLike,
+	Cookbook,
+	Path,
+	PathLike,
+	IBuildPath,
+} from 'iheartmake';
 import {
 	CVersion,
 	ICCompiler,

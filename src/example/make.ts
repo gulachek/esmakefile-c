@@ -1,4 +1,4 @@
-import { cli, Path } from 'gulpachek';
+import { cli, Path } from 'iheartmake';
 import { C, platformCompiler } from '../index.js';
 
 cli((book, opts) => {

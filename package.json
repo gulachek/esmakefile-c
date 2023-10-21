@@ -1,7 +1,7 @@
 {
-	"name": "gulpachek-c",
+	"name": "iheartmake-c",
 	"version": "0.1.0",
-	"description": "gulpachek C development tools",
+	"description": "iheartmake C development tools",
 	"main": "dist/index.js",
 	"types": "types/index.d.ts",
 	"type": "module",
@@ -16,7 +16,7 @@
 	"dependencies": {
 		"@types/node": "^18.11.3",
 		"commander": "^9.5.0",
-		"gulpachek": "file:../gulpachek"
+		"iheartmake": "^0.4.0"
 	},
 	"devDependencies": {
 		"@types/chai": "^4.3.5",

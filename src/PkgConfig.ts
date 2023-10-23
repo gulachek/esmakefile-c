@@ -2,7 +2,7 @@ import { ChildProcess, spawn } from 'node:child_process';
 import { Writable } from 'node:stream';
 import { join } from 'node:path';
 import { writeFile } from 'node:fs/promises';
-import { Cookbook, IRule, Path, RecipeArgs, IBuildPath } from 'iheartmake';
+import { Cookbook, IRule, Path, RecipeArgs, IBuildPath } from 'esmakefile';
 import { platform } from 'node:os';
 
 export type PkgSearchable = string | IBuildPath;

@@ -4,7 +4,7 @@ import {
 	Path,
 	PathLike,
 	IBuildPath,
-} from 'iheartmake';
+} from 'esmakefile';
 import {
 	CVersion,
 	ICCompiler,

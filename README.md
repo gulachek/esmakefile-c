@@ -1,4 +1,4 @@
-# iheartmake-c
+# esmakefile-c
 
 This is intended to make a cross platform build system for C libraries
-and executables, using the iheartmake build system.
+and executables, using the esmakefile build system.

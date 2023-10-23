@@ -1,7 +1,7 @@
 {
-	"name": "iheartmake-c",
-	"version": "0.1.0",
-	"description": "iheartmake C development tools",
+	"name": "esmakefile-c",
+	"version": "0.2.0",
+	"description": "esmakefile C development tools",
 	"main": "dist/index.js",
 	"types": "types/index.d.ts",
 	"type": "module",
@@ -16,7 +16,7 @@
 	"dependencies": {
 		"@types/node": "^18.11.3",
 		"commander": "^9.5.0",
-		"iheartmake": "^0.4.0"
+		"esmakefile": "^0.5.0"
 	},
 	"devDependencies": {
 		"@types/chai": "^4.3.5",

@@ -1,4 +1,4 @@
-import { cli, Path } from 'iheartmake';
+import { cli, Path } from 'esmakefile';
 import { C, platformCompiler } from '../index.js';
 
 cli((book, opts) => {

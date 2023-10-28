@@ -62,12 +62,27 @@ export class C<TCompiler extends ICompiler> {
 			includes.add(this._book.abs(Path.src(i)));
 		}
 
-		const defs = opts.definitions || {};
+		const exportIncludes = new Set<string>(includes);
+
+		if ('privateIncludes' in opts && opts.privateIncludes) {
+			const privateIncludes = opts.privateIncludes;
+			for (const i of privateIncludes) {
+				includes.add(this._book.abs(Path.src(i)));
+			}
+		}
+
+		const defs = { ...opts.definitions } || {};
 		if (!('DEBUG' in defs || 'NDEBUG' in defs)) {
 			if (this._isDebug) {
 				defs.DEBUG = '';
 			} else {
 				defs.NDEBUG = '';
+			}
+		}
+
+		if ('privateDefinitions' in opts && opts.privateDefinitions) {
+			for (const def in opts.privateDefinitions) {
+				defs[def] = opts.privateDefinitions[def];
 			}
 		}
 
@@ -81,8 +96,8 @@ export class C<TCompiler extends ICompiler> {
 			outputDirectory,
 			src,
 			runtime: this._runtimeLang(src),
-			includePaths: includes,
-			definitions: defs,
+			includePaths: exportIncludes,
+			definitions: opts.definitions,
 			link: opts.link || [],
 			isDebug: this._isDebug,
 		};
@@ -171,4 +186,6 @@ export interface IAddExecutableOpts {
 
 export interface IAddLibraryOpts extends IAddExecutableOpts {
 	version: string;
+	privateDefinitions?: Record<string, string>;
+	privateIncludes?: Iterable<PathLike>;
 }

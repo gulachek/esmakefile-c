@@ -9,6 +9,10 @@
 #error FOO_TEST_MACRO not exported properly
 #endif
 
+#ifdef EXPORT_FOO_API
+#error EXPORT_FOO_API should be private definition
+#endif
+
 int main(int argc, char *argv[]) {
 #ifdef DEBUG
   printf("DEBUG is defined\n");

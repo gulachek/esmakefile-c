@@ -18,10 +18,13 @@ cli((book, opts) => {
 		version: '1.0.0',
 		outputDirectory: 'foolib',
 		definitions: {
-			EXPORT_FOO_API: '',
 			FOO_TEST_MACRO: '4',
 		},
+		privateDefinitions: {
+			EXPORT_FOO_API: '',
+		},
 		includePaths: ['foo/include'],
+		privateIncludes: ['foo/private'],
 		src: ['foo/foo.c', 'foo/bar.cpp'],
 	});
 

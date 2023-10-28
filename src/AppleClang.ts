@@ -12,7 +12,7 @@ import { isFailure, PkgConfig, PkgSearchable } from './PkgConfig.js';
 
 import { Cookbook, IBuildPath, IRule, Path, RecipeArgs } from 'esmakefile';
 
-import { open } from 'node:fs/promises';
+import { open, readFile } from 'node:fs/promises';
 
 interface IAppleClangLibrary {
 	binaryPath: IBuildPath;
@@ -132,6 +132,7 @@ class AppleClangObject implements IRule {
 	translationUnit: TranslationUnit;
 	out: IBuildPath;
 	json: IBuildPath;
+	depfile: IBuildPath;
 	pkgConfigLibs: PkgSearchable[];
 	isDebug: boolean;
 
@@ -147,6 +148,7 @@ class AppleClangObject implements IRule {
 		this.translationUnit = src;
 		this.out = out;
 		this.json = json;
+		this.depfile = Path.gen(src.src, { ext: '.deps' });
 		this.pkgConfigLibs = pkgConfigLibs || [];
 		this.isDebug = isDebug;
 	}
@@ -164,10 +166,11 @@ class AppleClangObject implements IRule {
 	}
 
 	async recipe(args: RecipeArgs): Promise<boolean> {
-		const [src, obj, json] = args.absAll(
+		const [src, obj, json, deps] = args.absAll(
 			this.translationUnit.src,
 			this.out,
 			this.json,
+			this.depfile,
 		);
 
 		const includePaths = new Set(this.translationUnit.includePaths);
@@ -183,9 +186,11 @@ class AppleClangObject implements IRule {
 		}
 
 		const clangArgs = baseClangArgs();
-		clangArgs.push('-c', src, '-MJ', json, '-o', obj);
+		clangArgs.push('-c', src, '-o', obj);
 		clangArgs.push(`-std=${langArg}`);
 		clangArgs.push('-fvisibility=hidden');
+		clangArgs.push('-MJ', json);
+		clangArgs.push('-MMD', '-MF', deps);
 
 		for (const i of includePaths) {
 			clangArgs.push('-I', i);
@@ -222,7 +227,18 @@ class AppleClangObject implements IRule {
 			}
 		}
 
-		return args.spawn(clang, clangArgs);
+		const result = await args.spawn(clang, clangArgs);
+		if (!result) return false;
+
+		const depfileContents = await readFile(deps, 'utf8');
+		const lines = depfileContents.split(/\\\n/);
+
+		// first line is target
+		for (let i = 1; i < lines.length; ++i) {
+			args.addPostreq(lines[i].trim());
+		}
+
+		return true;
 	}
 }
 

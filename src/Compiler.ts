@@ -54,10 +54,10 @@ export interface IExecutableOpts {
 	link: Linkable[];
 	runtime: RuntimeLanguage;
 	isDebug: boolean;
-	includePaths: Set<string>;
-	definitions: Record<string, string>;
 }
 
 export interface ILibraryOpts extends IExecutableOpts {
 	version: string;
+	includePaths: Set<string>;
+	definitions: Record<string, string>;
 }

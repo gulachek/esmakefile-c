@@ -78,7 +78,6 @@ class PackageRecipe implements IRule {
 
 export class PkgConfig {
 	private _book: Cookbook;
-
 	private _localModsPath: string;
 
 	constructor(book: Cookbook) {

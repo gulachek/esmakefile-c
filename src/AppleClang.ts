@@ -47,11 +47,14 @@ export class AppleClang implements ICompiler {
 		book.add(new ClangCompileCommands(this.compileCommands));
 	}
 
-	addExecutable(book: Cookbook, opts: IExecutableOpts): void {
-		const { src, name, outputDirectory, link } = opts;
-		const output = outputDirectory.join(name);
-
-		const pkgConfig = new PkgConfig(book);
+	private _compileAndLink(
+		book: Cookbook,
+		pkgConfig: PkgConfig,
+		output: IBuildPath,
+		type: ImageType,
+		opts: IExecutableOpts,
+	): void {
+		const { src, link } = opts;
 
 		const { libs, imports } = this.libs(link);
 
@@ -73,8 +76,8 @@ export class AppleClang implements ICompiler {
 			book.add(obj);
 		}
 
-		const exe = new AppleClangLinkedImage(
-			ImageType.Executable,
+		const image = new AppleClangLinkedImage(
+			type,
 			opts.runtime,
 			pkgConfig,
 			objPaths,
@@ -83,46 +86,24 @@ export class AppleClang implements ICompiler {
 			libs,
 		);
 
-		book.add(exe);
+		book.add(image);
+	}
+
+	addExecutable(book: Cookbook, opts: IExecutableOpts): void {
+		const { outputDirectory, name } = opts;
+		const output = outputDirectory.join(name);
+		const pkgConfig = new PkgConfig(book);
+
+		this._compileAndLink(book, pkgConfig, output, ImageType.Executable, opts);
 	}
 
 	addLibrary(book: Cookbook, opts: ILibraryOpts): IBuildPath {
-		const { src, name, version, outputDirectory, includePaths, link } = opts;
+		const { name, version, outputDirectory, includePaths } = opts;
 
 		const output = outputDirectory.join(`lib${name}.dylib`);
-
 		const pkgConfig = new PkgConfig(book);
 
-		const objPaths: IBuildPath[] = [];
-
-		const { libs, imports } = this.libs(link);
-
-		for (const tu of src) {
-			const out = Path.gen(tu.src, { ext: '.o' });
-			const json = Path.gen(tu.src, { ext: '.json' });
-			const obj = new AppleClangObject(
-				pkgConfig,
-				tu,
-				out,
-				json,
-				imports,
-				opts.isDebug,
-			);
-			this.compileCommands.add(json);
-			objPaths.push(out);
-			book.add(obj);
-		}
-
-		const dylib = new AppleClangLinkedImage(
-			ImageType.Dylib,
-			opts.runtime,
-			pkgConfig,
-			objPaths,
-			output,
-			imports,
-			libs,
-		);
-		book.add(dylib);
+		this._compileAndLink(book, pkgConfig, output, ImageType.Dylib, opts);
 
 		const pkgConfigPath = pkgConfig.addPackage({
 			packageName: name,

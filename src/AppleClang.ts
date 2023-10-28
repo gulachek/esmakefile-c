@@ -1,8 +1,8 @@
 import {
 	CVersion,
-	ICCompiler,
-	ICExecutableOpts,
-	ICLibraryOpts,
+	ICompiler,
+	IExecutableOpts,
+	ILibraryOpts,
 	ICTranslationUnit,
 	Linkable,
 } from './Compiler.js';
@@ -84,7 +84,7 @@ class ClangCompileCommands implements IRule {
 	}
 }
 
-export class AppleClang implements ICCompiler {
+export class AppleClang implements ICompiler {
 	libraries: Map<string, IAppleClangLibrary> = new Map();
 	compileCommands: Set<IBuildPath> = new Set();
 
@@ -112,7 +112,7 @@ export class AppleClang implements ICCompiler {
 		book.add(new ClangCompileCommands(this.compileCommands));
 	}
 
-	addCExecutable(book: Cookbook, opts: ICExecutableOpts): void {
+	addExecutable(book: Cookbook, opts: IExecutableOpts): void {
 		const { src, output, link } = opts;
 		const pkgConfig = new PkgConfig(book);
 
@@ -139,7 +139,7 @@ export class AppleClang implements ICCompiler {
 		book.add(exe);
 	}
 
-	addCLibrary(book: Cookbook, opts: ICLibraryOpts): IBuildPath {
+	addLibrary(book: Cookbook, opts: ILibraryOpts): IBuildPath {
 		const { src, name, version, outputDirectory, includePaths, link } = opts;
 
 		const output = outputDirectory.join(`lib${name}.dylib`);

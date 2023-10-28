@@ -2,7 +2,9 @@ import { cli, Path } from 'esmakefile';
 import { C, platformCompiler } from '../index.js';
 
 cli((book, opts) => {
-	const c = new C(platformCompiler(), {
+	const compiler = platformCompiler();
+
+	const c = new C(compiler, {
 		...opts,
 		book,
 		cVersion: 'C17',
@@ -18,7 +20,7 @@ cli((book, opts) => {
 			FOO_RETURN: '4',
 		},
 		includePaths: ['foo/include'],
-		src: ['foo/foo.c'],
+		src: ['foo/foo.c', 'foo/bar.cpp'],
 	});
 
 	c.addExecutable({

@@ -7,12 +7,12 @@ import {
 } from 'esmakefile';
 import {
 	CVersion,
-	ICCompiler,
+	ICompiler,
 	ICTranslationUnit,
 	Linkable,
 } from './Compiler.js';
 
-export class C<TCompiler extends ICCompiler> {
+export class C<TCompiler extends ICompiler> {
 	private _book: Cookbook;
 	private _compiler: TCompiler;
 	private _cVersion: CVersion;
@@ -44,7 +44,7 @@ export class C<TCompiler extends ICCompiler> {
 			this._makeTranslationUnit(s, includes, defs),
 		);
 
-		this._compiler.addCExecutable(this._book, {
+		this._compiler.addExecutable(this._book, {
 			output,
 			src,
 			link: opts.link || [],
@@ -67,7 +67,7 @@ export class C<TCompiler extends ICCompiler> {
 			this._makeTranslationUnit(s, includes, defs),
 		);
 
-		return this._compiler.addCLibrary(this._book, {
+		return this._compiler.addLibrary(this._book, {
 			name,
 			version,
 			outputDirectory,

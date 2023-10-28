@@ -1,6 +1,13 @@
 import { Cookbook, IBuildPath, Path } from 'esmakefile';
 
 export type CVersion = 'C89' | 'C99' | 'C11' | 'C17';
+export type CxxVersion =
+	| 'C++98'
+	| 'C++03'
+	| 'C++11'
+	| 'C++14'
+	| 'C++17'
+	| 'C++20';
 
 export type Linkable = string | IBuildPath;
 
@@ -11,29 +18,36 @@ export interface ICTranslationUnit {
 	definitions: Record<string, string>;
 }
 
+export interface ICxxTranslationUnit {
+	src: Path;
+	cxxVersion: CxxVersion;
+	includePaths: Set<string>;
+	definitions: Record<string, string>;
+}
+
+export type TranslationUnit = ICTranslationUnit | ICxxTranslationUnit;
+
 /**
  * C compiler for building C libraries
  * and executables
  */
-export interface ICCompiler<
-	TLibraryOpts extends ICLibraryOpts = ICLibraryOpts,
-> {
-	/** Compile and link a C executable */
-	addCExecutable(book: Cookbook, opts: ICExecutableOpts): void;
+export interface ICompiler<TLibraryOpts extends ILibraryOpts = ILibraryOpts> {
+	/** Compile and link an executable */
+	addExecutable(book: Cookbook, opts: IExecutableOpts): void;
 
-	/** Compile and link a C library */
-	addCLibrary(book: Cookbook, opts: TLibraryOpts): IBuildPath;
+	/** Compile and (optionally) link a library */
+	addLibrary(book: Cookbook, opts: TLibraryOpts): IBuildPath;
 
 	addCompileCommands(book: Cookbook): void;
 }
 
-export interface ICExecutableOpts {
+export interface IExecutableOpts {
 	output: IBuildPath;
 	src: ICTranslationUnit[];
 	link: Linkable[];
 }
 
-export interface ICLibraryOpts {
+export interface ILibraryOpts {
 	name: string;
 	version: string;
 	outputDirectory: IBuildPath;

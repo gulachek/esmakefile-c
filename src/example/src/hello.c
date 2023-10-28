@@ -8,6 +8,7 @@
 int main(int argc, char *argv[]) {
   printf("Hello world!\n");
   printf("foo() returns: %d\n", foo());
+  printf("bar() returns: %d\n", bar());
   printf("Zlib version: %s\n", zlibVersion());
   printf("sqlite3 version: %s\n", sqlite3_libversion());
 

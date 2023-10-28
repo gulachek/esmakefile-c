@@ -7,20 +7,25 @@ import {
 } from 'esmakefile';
 import {
 	CVersion,
+	CxxVersion,
 	ICompiler,
-	ICTranslationUnit,
+	isC,
 	Linkable,
+	RuntimeLanguage,
+	TranslationUnit,
 } from './Compiler.js';
 
 export class C<TCompiler extends ICompiler> {
 	private _book: Cookbook;
 	private _compiler: TCompiler;
-	private _cVersion: CVersion;
+	private _cVersion: CVersion | null;
+	private _cxxVersion: CxxVersion | null;
 
-	constructor(compiler: TCompiler, opts: ICOpts) {
+	constructor(compiler: TCompiler, opts: ICOpts | ICxxOpts) {
 		this._book = opts.book;
 		this._compiler = compiler;
-		this._cVersion = opts.cVersion;
+		this._cVersion = opts.cVersion || null;
+		this._cxxVersion = opts.cxxVersion || null;
 	}
 
 	// TODO - this shouldn't be necessary. Should be able to dynamicall
@@ -47,6 +52,7 @@ export class C<TCompiler extends ICompiler> {
 		this._compiler.addExecutable(this._book, {
 			output,
 			src,
+			runtime: this._runtimeLang(src),
 			link: opts.link || [],
 		});
 	}
@@ -72,6 +78,7 @@ export class C<TCompiler extends ICompiler> {
 			version,
 			outputDirectory,
 			src,
+			runtime: this._runtimeLang(src),
 			includePaths: includes,
 			definitions: defs,
 			cVersion: this._cVersion,
@@ -79,14 +86,55 @@ export class C<TCompiler extends ICompiler> {
 		});
 	}
 
+	private _runtimeLang(tus: TranslationUnit[]): RuntimeLanguage {
+		for (const tu of tus) {
+			if (!isC(tu)) return 'C++';
+		}
+
+		return 'C';
+	}
+
 	private _makeTranslationUnit(
 		src: PathLike,
 		includes: Set<string>,
 		defs: Record<string, string>,
-	): ICTranslationUnit {
+	): TranslationUnit {
+		const srcPath = Path.src(src);
+		if (srcPath.extname === '.c') {
+			if (!this._cVersion) {
+				throw new Error(
+					`Source file ${srcPath} is a C file but no cVersion was given to the build system`,
+				);
+			}
+
+			return {
+				src: srcPath,
+				cVersion: this._cVersion,
+				includePaths: includes,
+				definitions: defs,
+			};
+		}
+
+		switch (srcPath.extname) {
+			case '.cpp':
+			case '.cxx':
+			case '.cc':
+				break;
+			default:
+				throw new Error(
+					`${srcPath} has a file extension that is not recognized by the system`,
+				);
+		}
+
+		if (!this._cxxVersion) {
+			throw new Error(
+				`Source file ${srcPath} is a C++ file but no cxxVersion was given to the build system`,
+			);
+		}
+
 		return {
-			src: Path.src(src),
-			cVersion: this._cVersion,
+			src: srcPath,
+			cxxVersion: this._cxxVersion,
 			includePaths: includes,
 			definitions: defs,
 		};
@@ -96,6 +144,13 @@ export class C<TCompiler extends ICompiler> {
 export interface ICOpts {
 	book: Cookbook;
 	cVersion: CVersion;
+	cxxVersion?: CxxVersion;
+}
+
+export interface ICxxOpts {
+	book: Cookbook;
+	cxxVersion: CxxVersion;
+	cVersion?: CVersion;
 }
 
 export interface IAddExecutableOpts {

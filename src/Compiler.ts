@@ -9,6 +9,8 @@ export type CxxVersion =
 	| 'C++17'
 	| 'C++20';
 
+export type RuntimeLanguage = 'C' | 'C++';
+
 export type Linkable = string | IBuildPath;
 
 export interface ICTranslationUnit {
@@ -27,6 +29,10 @@ export interface ICxxTranslationUnit {
 
 export type TranslationUnit = ICTranslationUnit | ICxxTranslationUnit;
 
+export function isC(tu: TranslationUnit): tu is ICTranslationUnit {
+	return 'cVersion' in tu;
+}
+
 /**
  * C compiler for building C libraries
  * and executables
@@ -43,16 +49,18 @@ export interface ICompiler<TLibraryOpts extends ILibraryOpts = ILibraryOpts> {
 
 export interface IExecutableOpts {
 	output: IBuildPath;
-	src: ICTranslationUnit[];
+	src: TranslationUnit[];
 	link: Linkable[];
+	runtime: RuntimeLanguage;
 }
 
 export interface ILibraryOpts {
 	name: string;
 	version: string;
 	outputDirectory: IBuildPath;
-	src: ICTranslationUnit[];
+	src: TranslationUnit[];
 	link: Linkable[];
+	runtime: RuntimeLanguage;
 
 	// API
 	includePaths: Set<string>;

@@ -8,6 +8,7 @@ cli((book, opts) => {
 		...opts,
 		book,
 		cVersion: 'C17',
+		cxxVersion: 'C++20',
 	});
 
 	book.add('all', [Path.build('hello'), Path.build('compile_commands.json')]);

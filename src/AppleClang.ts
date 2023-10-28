@@ -1,10 +1,11 @@
 import {
-	CVersion,
 	ICompiler,
 	IExecutableOpts,
 	ILibraryOpts,
-	ICTranslationUnit,
+	TranslationUnit,
 	Linkable,
+	isC,
+	RuntimeLanguage,
 } from './Compiler.js';
 
 import { isFailure, PkgConfig, PkgSearchable } from './PkgConfig.js';
@@ -13,39 +14,9 @@ import { Cookbook, IBuildPath, IRule, Path, RecipeArgs } from 'esmakefile';
 
 import { open } from 'node:fs/promises';
 
-interface ICompileInfo {
-	cVersion: CVersion;
-	includePaths: Set<string>;
-	definitions: Record<string, string>;
-}
-
 interface IAppleClangLibrary {
 	binaryPath: IBuildPath;
 	pkgConfigPath: IBuildPath;
-}
-
-function maxCVersion(a: CVersion, b: CVersion): CVersion {
-	const order = ['C89', 'C99', 'C11', 'C17'];
-	const aIndex = order.indexOf(a);
-	const bIndex = order.indexOf(b);
-	if (aIndex < bIndex) {
-		return b;
-	} else {
-		return a;
-	}
-}
-
-function mergeCompileInfo(base: ICompileInfo, add: ICompileInfo): void {
-	base.cVersion = maxCVersion(base.cVersion, add.cVersion);
-
-	for (const key in add.definitions) {
-		// do something about conflicting definitions
-		base.definitions[key] = add.definitions[key];
-	}
-
-	for (const i of add.includePaths) {
-		base.includePaths.add(i);
-	}
 }
 
 class ClangCompileCommands implements IRule {
@@ -130,6 +101,7 @@ export class AppleClang implements ICompiler {
 		}
 
 		const exe = new AppleClangExecutable(
+			opts.runtime,
 			pkgConfig,
 			objPaths,
 			output,
@@ -167,6 +139,7 @@ export class AppleClang implements ICompiler {
 		});
 
 		const dylib = new AppleClangDylib(
+			opts.runtime,
 			pkgConfig,
 			objPaths,
 			output,
@@ -184,25 +157,22 @@ export class AppleClang implements ICompiler {
 
 class AppleClangObject implements IRule {
 	pkgConfig: PkgConfig;
-	translationUnit: ICTranslationUnit;
+	translationUnit: TranslationUnit;
 	out: IBuildPath;
 	json: IBuildPath;
-	compileInfo?: ICompileInfo;
 	pkgConfigLibs: PkgSearchable[];
 
 	constructor(
 		pkgConfig: PkgConfig,
-		src: ICTranslationUnit,
+		src: TranslationUnit,
 		out: IBuildPath,
 		json: IBuildPath,
 		pkgConfigLibs: PkgSearchable[],
-		info?: ICompileInfo,
 	) {
 		this.pkgConfig = pkgConfig;
 		this.translationUnit = src;
 		this.out = out;
 		this.json = json;
-		this.compileInfo = info;
 		this.pkgConfigLibs = pkgConfigLibs || [];
 	}
 
@@ -225,30 +195,23 @@ class AppleClangObject implements IRule {
 			this.json,
 		);
 
-		const baseInfo: ICompileInfo = {
-			cVersion: this.translationUnit.cVersion,
-			includePaths: new Set(this.translationUnit.includePaths),
-			definitions: { ...this.translationUnit.definitions },
-		};
+		const includePaths = new Set(this.translationUnit.includePaths);
+		const definitions = { ...this.translationUnit.definitions };
 
-		const info = this.compileInfo;
-		if (info) {
-			if (
-				maxCVersion(this.translationUnit.cVersion, info.cVersion) !==
-				this.translationUnit.cVersion
-			) {
-				// TODO - this is a horrible error message w/ no details
-				throw new Error(`Some linked library requires a higher C version`);
-			}
+		let clang: string;
+		let langArg: string;
 
-			mergeCompileInfo(baseInfo, info);
+		if (isC(this.translationUnit)) {
+			clang = 'clang';
+			langArg = this.translationUnit.cVersion.toLowerCase();
+		} else {
+			clang = 'clang++';
+			langArg = this.translationUnit.cxxVersion.toLowerCase();
 		}
-
-		const { cVersion, includePaths, definitions } = baseInfo;
 
 		const clangArgs = baseClangArgs();
 		clangArgs.push('-g', '-c', src, '-MJ', json, '-o', obj);
-		clangArgs.push(`-std=${cVersion.toLowerCase()}`);
+		clangArgs.push(`-std=${langArg}`);
 
 		for (const i of includePaths) {
 			clangArgs.push('-I', i);
@@ -269,11 +232,12 @@ class AppleClangObject implements IRule {
 			}
 		}
 
-		return args.spawn('clang', clangArgs);
+		return args.spawn(clang, clangArgs);
 	}
 }
 
 class AppleClangExecutable implements IRule {
+	runtime: RuntimeLanguage;
 	pkgConfig: PkgConfig;
 	objs: Path[];
 	out: IBuildPath;
@@ -281,12 +245,14 @@ class AppleClangExecutable implements IRule {
 	pkgConfigLibs: PkgSearchable[] = [];
 
 	constructor(
+		runtime: RuntimeLanguage,
 		pkgConfig: PkgConfig,
 		objs: Path[],
 		out: IBuildPath,
 		pkgConfigLibs: PkgSearchable[],
 		libs: IAppleClangLibrary[],
 	) {
+		this.runtime = runtime;
 		this.pkgConfig = pkgConfig;
 		this.objs = objs;
 		this.out = out;
@@ -326,11 +292,13 @@ class AppleClangExecutable implements IRule {
 			}
 		}
 
-		return args.spawn('clang', clangArgs);
+		const clang = this.runtime === 'C' ? 'clang' : 'clang++';
+		return args.spawn(clang, clangArgs);
 	}
 }
 
 class AppleClangDylib implements IRule, IAppleClangLibrary {
+	runtime: RuntimeLanguage;
 	objs: Path[];
 	binaryPath: IBuildPath;
 	pkgConfigPath: IBuildPath;
@@ -339,6 +307,7 @@ class AppleClangDylib implements IRule, IAppleClangLibrary {
 	libTargets: IBuildPath[];
 
 	constructor(
+		runtime: RuntimeLanguage,
 		pkgConfig: PkgConfig,
 		objs: Path[],
 		out: IBuildPath,
@@ -346,6 +315,7 @@ class AppleClangDylib implements IRule, IAppleClangLibrary {
 		pkgConfigLibs: PkgSearchable[],
 		libs: IAppleClangLibrary[],
 	) {
+		this.runtime = runtime;
 		this.pkgConfig = pkgConfig;
 		this.objs = objs;
 		this.binaryPath = out;
@@ -387,7 +357,8 @@ class AppleClangDylib implements IRule, IAppleClangLibrary {
 			}
 		}
 
-		return args.spawn('clang', clangArgs);
+		const clang = this.runtime === 'C' ? 'clang' : 'clang++';
+		return args.spawn(clang, clangArgs);
 	}
 }
 

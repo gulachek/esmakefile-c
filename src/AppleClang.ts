@@ -176,6 +176,7 @@ class AppleClangObject implements IRule {
 		const clangArgs = baseClangArgs();
 		clangArgs.push('-c', src, '-MJ', json, '-o', obj);
 		clangArgs.push(`-std=${langArg}`);
+		clangArgs.push('-fvisibility=hidden');
 
 		for (const i of includePaths) {
 			clangArgs.push('-I', i);
@@ -187,7 +188,13 @@ class AppleClangObject implements IRule {
 			clangArgs.push('-O3');
 		}
 
+		const baseDefinitions: Record<string, string> = {
+			EXPORT: '__attribute__((visibility("default")))',
+			IMPORT: '',
+		};
+
 		const definitions = {
+			...baseDefinitions,
 			...this.translationUnit.definitions,
 		};
 

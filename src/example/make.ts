@@ -4,7 +4,6 @@ import { C, platformCompiler } from '../index.js';
 cli((book, opts) => {
 	const compiler = platformCompiler();
 
-	console.log(opts);
 	const c = new C(compiler, {
 		...opts,
 		book,
@@ -19,7 +18,7 @@ cli((book, opts) => {
 		version: '1.0.0',
 		outputDirectory: 'foolib',
 		definitions: {
-			FOO_RETURN: '4',
+			EXPORT_FOO_API: '',
 		},
 		includePaths: ['foo/include'],
 		src: ['foo/foo.c', 'foo/bar.cpp'],

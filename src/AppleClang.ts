@@ -19,42 +19,6 @@ interface IAppleClangLibrary {
 	pkgConfigPath: IBuildPath;
 }
 
-class ClangCompileCommands implements IRule {
-	src: IBuildPath[];
-	json: IBuildPath;
-
-	constructor(sources: Iterable<IBuildPath>) {
-		this.src = [...sources];
-		this.json = Path.build('compile_commands.json');
-	}
-
-	prereqs() {
-		return this.src;
-	}
-
-	targets() {
-		return this.json;
-	}
-
-	async recipe(args: RecipeArgs): Promise<boolean> {
-		const sources = args.absAll(...this.src);
-		const json = args.abs(this.json);
-
-		const f = await open(json, 'w');
-		await f.appendFile('[', 'utf8');
-
-		for (const src of sources) {
-			const mini = await open(src, 'r');
-			const contents = await mini.readFile('utf8');
-			await f.appendFile(contents, 'utf8');
-			await mini.close();
-		}
-		await f.appendFile(']', 'utf8');
-		await f.close();
-		return true;
-	}
-}
-
 export class AppleClang implements ICompiler {
 	libraries: Map<string, IAppleClangLibrary> = new Map();
 	compileCommands: Set<IBuildPath> = new Set();
@@ -394,4 +358,40 @@ class AppleClangDylib implements IRule, IAppleClangLibrary {
 
 function baseClangArgs(): string[] {
 	return ['-fcolor-diagnostics'];
+}
+
+class ClangCompileCommands implements IRule {
+	src: IBuildPath[];
+	json: IBuildPath;
+
+	constructor(sources: Iterable<IBuildPath>) {
+		this.src = [...sources];
+		this.json = Path.build('compile_commands.json');
+	}
+
+	prereqs() {
+		return this.src;
+	}
+
+	targets() {
+		return this.json;
+	}
+
+	async recipe(args: RecipeArgs): Promise<boolean> {
+		const sources = args.absAll(...this.src);
+		const json = args.abs(this.json);
+
+		const f = await open(json, 'w');
+		await f.appendFile('[', 'utf8');
+
+		for (const src of sources) {
+			const mini = await open(src, 'r');
+			const contents = await mini.readFile('utf8');
+			await f.appendFile(contents, 'utf8');
+			await mini.close();
+		}
+		await f.appendFile(']', 'utf8');
+		await f.close();
+		return true;
+	}
 }

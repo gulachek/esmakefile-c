@@ -111,13 +111,6 @@ export class AppleClang implements ICompiler {
 			book.add(obj);
 		}
 
-		const pkgConfigPath = pkgConfig.addPackage({
-			packageName: name,
-			version,
-			cflags: [...includePaths].map((i) => `-I${i}`).join(' '),
-			libs: `-L${book.abs(outputDirectory)} -l${name}`,
-		});
-
 		const dylib = new AppleClangLinkedImage(
 			ImageType.Dylib,
 			opts.runtime,
@@ -128,6 +121,13 @@ export class AppleClang implements ICompiler {
 			libs,
 		);
 		book.add(dylib);
+
+		const pkgConfigPath = pkgConfig.addPackage({
+			packageName: name,
+			version,
+			cflags: [...includePaths].map((i) => `-I${i}`).join(' '),
+			libs: `-L${book.abs(outputDirectory)} -l${name}`,
+		});
 
 		this.libraries.set(output.rel(), { binaryPath: output, pkgConfigPath });
 

@@ -9,6 +9,8 @@ import {
 	CVersion,
 	CxxVersion,
 	ICompiler,
+	IExecutableOpts,
+	ILibraryOpts,
 	isC,
 	Linkable,
 	RuntimeLanguage,
@@ -37,31 +39,21 @@ export class C<TCompiler extends ICompiler> {
 	}
 
 	public addExecutable(opts: IAddExecutableOpts): void {
-		const output = Path.build(opts.outputDirectory || '/').join(opts.name);
-
-		const includes = new Set<string>();
-		const rawIncludesPaths = opts.includePaths || ['include'];
-		for (const i of rawIncludesPaths) {
-			includes.add(this._book.abs(Path.src(i)));
-		}
-
-		const defs = opts.definitions || {};
-
-		const src = opts.src.map((s) =>
-			this._makeTranslationUnit(s, includes, defs),
-		);
-
-		this._compiler.addExecutable(this._book, {
-			output,
-			src,
-			isDebug: this._isDebug,
-			runtime: this._runtimeLang(src),
-			link: opts.link || [],
-		});
+		return this._compiler.addExecutable(this._book, this._normalizeOpts(opts));
 	}
 
 	public addLibrary(opts: IAddLibraryOpts): IBuildPath {
-		const { name, version } = opts;
+		return this._compiler.addLibrary(this._book, this._normalizeOpts(opts));
+	}
+
+	private _normalizeOpts(opts: IAddLibraryOpts): ILibraryOpts;
+	private _normalizeOpts(opts: IAddExecutableOpts): IExecutableOpts;
+	private _normalizeOpts(
+		opts: IAddLibraryOpts | IAddExecutableOpts,
+	): ILibraryOpts | IExecutableOpts {
+		const { name } = opts;
+		const version = 'version' in opts ? opts.version : undefined;
+
 		const outputDirectory = Path.build(opts.outputDirectory || '/');
 
 		const includes = new Set<string>();
@@ -76,7 +68,7 @@ export class C<TCompiler extends ICompiler> {
 			this._makeTranslationUnit(s, includes, defs),
 		);
 
-		return this._compiler.addLibrary(this._book, {
+		return {
 			name,
 			version,
 			outputDirectory,
@@ -84,10 +76,9 @@ export class C<TCompiler extends ICompiler> {
 			runtime: this._runtimeLang(src),
 			includePaths: includes,
 			definitions: defs,
-			cVersion: this._cVersion,
 			link: opts.link || [],
 			isDebug: this._isDebug,
-		});
+		};
 	}
 
 	private _runtimeLang(tus: TranslationUnit[]): RuntimeLanguage {
@@ -167,19 +158,10 @@ export interface IAddExecutableOpts {
 
 	/** default ['include'] */
 	includePaths?: Iterable<PathLike>;
-
 	definitions?: Record<string, string>;
-
 	link?: Linkable[];
 }
 
-export interface IAddLibraryOpts {
-	name: string;
+export interface IAddLibraryOpts extends IAddExecutableOpts {
 	version: string;
-	outputDirectory?: BuildPathLike;
-	src: PathLike[];
-
-	includePaths?: Iterable<PathLike>;
-	definitions?: Record<string, string>;
-	link?: Linkable[];
 }

@@ -48,7 +48,9 @@ export class AppleClang implements ICompiler {
 	}
 
 	addExecutable(book: Cookbook, opts: IExecutableOpts): void {
-		const { src, output, link } = opts;
+		const { src, name, outputDirectory, link } = opts;
+		const output = outputDirectory.join(name);
+
 		const pkgConfig = new PkgConfig(book);
 
 		const { libs, imports } = this.libs(link);

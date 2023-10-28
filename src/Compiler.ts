@@ -48,35 +48,16 @@ export interface ICompiler<TLibraryOpts extends ILibraryOpts = ILibraryOpts> {
 }
 
 export interface IExecutableOpts {
-	output: IBuildPath;
-	src: TranslationUnit[];
-	link: Linkable[];
-	runtime: RuntimeLanguage;
-	isDebug: boolean;
-}
-
-export interface ILibraryOpts {
 	name: string;
-	version: string;
 	outputDirectory: IBuildPath;
 	src: TranslationUnit[];
 	link: Linkable[];
 	runtime: RuntimeLanguage;
 	isDebug: boolean;
-
-	// API
 	includePaths: Set<string>;
-	cVersion: CVersion;
 	definitions: Record<string, string>;
 }
 
-export interface ICLibraryInterface {
-	/**  paths for consumer to include */
-	includePaths: Set<string>;
-
-	/** definitions for consumer to define */
-	definitions: Record<string, string>;
-
-	/** C version that consumer must be compatible with to include headers */
-	cVersion: CVersion;
+export interface ILibraryOpts extends IExecutableOpts {
+	version: string;
 }

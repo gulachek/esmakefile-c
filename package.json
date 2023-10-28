@@ -16,7 +16,7 @@
 	"dependencies": {
 		"@types/node": "^18.11.3",
 		"commander": "^9.5.0",
-		"esmakefile": "^0.5.0"
+		"esmakefile": "file:../esmakefile"
 	},
 	"devDependencies": {
 		"@types/chai": "^4.3.5",

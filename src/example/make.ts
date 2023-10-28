@@ -19,6 +19,7 @@ cli((book, opts) => {
 		outputDirectory: 'foolib',
 		definitions: {
 			EXPORT_FOO_API: '',
+			FOO_TEST_MACRO: '4',
 		},
 		includePaths: ['foo/include'],
 		src: ['foo/foo.c', 'foo/bar.cpp'],

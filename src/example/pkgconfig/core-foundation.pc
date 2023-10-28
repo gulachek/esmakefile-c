@@ -4,4 +4,4 @@ Description: Apple Carbon Core Foundation
 Version: 13.5.1
 URL: https://developer.apple.com/documentation/corefoundation/1388772-cfarraygetcount?language=objc
 Libs: -framework CoreFoundation
-Cflags: -framework CoreFoundation
+Cflags:

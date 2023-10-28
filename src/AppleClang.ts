@@ -98,17 +98,26 @@ export class AppleClang implements ICompiler {
 	}
 
 	addLibrary(book: Cookbook, opts: ILibraryOpts): IBuildPath {
-		const { name, version, outputDirectory, includePaths } = opts;
+		const { name, version, outputDirectory, includePaths, definitions } = opts;
 
 		const output = outputDirectory.join(`lib${name}.dylib`);
 		const pkgConfig = new PkgConfig(book);
 
 		this._compileAndLink(book, pkgConfig, output, ImageType.Dylib, opts);
 
+		const cflags: string[] = [];
+		for (const i of includePaths) {
+			cflags.push(`-I${i}`);
+		}
+
+		for (const def in definitions) {
+			cflags.push(`-D${def}=${definitions[def]}`);
+		}
+
 		const pkgConfigPath = pkgConfig.addPackage({
 			packageName: name,
 			version,
-			cflags: [...includePaths].map((i) => `-I${i}`).join(' '),
+			cflags: cflags.join(' '),
 			libs: `-L${book.abs(outputDirectory)} -l${name}`,
 		});
 

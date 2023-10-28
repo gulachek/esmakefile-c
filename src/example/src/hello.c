@@ -5,6 +5,10 @@
 
 #include <stdio.h>
 
+#ifndef FOO_TEST_MACRO
+#error FOO_TEST_MACRO not exported properly
+#endif
+
 int main(int argc, char *argv[]) {
 #ifdef DEBUG
   printf("DEBUG is defined\n");

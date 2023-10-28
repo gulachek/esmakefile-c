@@ -71,7 +71,8 @@ export class AppleClang implements ICompiler {
 			book.add(obj);
 		}
 
-		const exe = new AppleClangExecutable(
+		const exe = new AppleClangLinkedImage(
+			ImageType.Executable,
 			opts.runtime,
 			pkgConfig,
 			objPaths,
@@ -79,6 +80,7 @@ export class AppleClang implements ICompiler {
 			imports,
 			libs,
 		);
+
 		book.add(exe);
 	}
 
@@ -116,18 +118,18 @@ export class AppleClang implements ICompiler {
 			libs: `-L${book.abs(outputDirectory)} -l${name}`,
 		});
 
-		const dylib = new AppleClangDylib(
+		const dylib = new AppleClangLinkedImage(
+			ImageType.Dylib,
 			opts.runtime,
 			pkgConfig,
 			objPaths,
 			output,
-			pkgConfigPath,
 			imports,
 			libs,
 		);
 		book.add(dylib);
 
-		this.libraries.set(output.rel(), dylib);
+		this.libraries.set(output.rel(), { binaryPath: output, pkgConfigPath });
 
 		return output;
 	}
@@ -230,90 +232,34 @@ class AppleClangObject implements IRule {
 	}
 }
 
-class AppleClangExecutable implements IRule {
-	runtime: RuntimeLanguage;
-	pkgConfig: PkgConfig;
-	objs: Path[];
-	out: IBuildPath;
-	libTargets: IBuildPath[] = [];
-	pkgConfigLibs: PkgSearchable[] = [];
-
-	constructor(
-		runtime: RuntimeLanguage,
-		pkgConfig: PkgConfig,
-		objs: Path[],
-		out: IBuildPath,
-		pkgConfigLibs: PkgSearchable[],
-		libs: IAppleClangLibrary[],
-	) {
-		this.runtime = runtime;
-		this.pkgConfig = pkgConfig;
-		this.objs = objs;
-		this.out = out;
-		this.pkgConfigLibs = pkgConfigLibs || [];
-
-		for (const lib of libs) {
-			this.libTargets.push(lib.binaryPath);
-		}
-	}
-
-	prereqs() {
-		const pkgPaths: Path[] = [];
-		for (const p of this.pkgConfigLibs) {
-			if (p instanceof Path) pkgPaths.push(p);
-		}
-		return [...this.objs, ...this.libTargets, ...pkgPaths];
-	}
-
-	targets() {
-		return this.out;
-	}
-
-	async recipe(args: RecipeArgs): Promise<boolean> {
-		const objs = args.absAll(...this.objs);
-		const out = args.abs(this.out);
-
-		const clangArgs = baseClangArgs();
-		clangArgs.push('-o', out, ...objs);
-
-		if (this.pkgConfigLibs.length) {
-			const result = await this.pkgConfig.libs(this.pkgConfigLibs);
-			if (isFailure(result)) {
-				args.logStream.write(result.stderr);
-				return false;
-			} else {
-				clangArgs.push(...result.value);
-			}
-		}
-
-		const clang = this.runtime === 'C' ? 'clang' : 'clang++';
-		return args.spawn(clang, clangArgs);
-	}
+enum ImageType {
+	Dylib = 'dylib',
+	Executable = 'executable',
 }
 
-class AppleClangDylib implements IRule, IAppleClangLibrary {
+class AppleClangLinkedImage implements IRule {
+	type: ImageType;
 	runtime: RuntimeLanguage;
 	objs: Path[];
 	binaryPath: IBuildPath;
-	pkgConfigPath: IBuildPath;
 	pkgConfig: PkgConfig;
 	pkgConfigLibs: PkgSearchable[];
 	libTargets: IBuildPath[];
 
 	constructor(
+		type: ImageType,
 		runtime: RuntimeLanguage,
 		pkgConfig: PkgConfig,
 		objs: Path[],
 		out: IBuildPath,
-		pkgConfigPath: IBuildPath,
 		pkgConfigLibs: PkgSearchable[],
 		libs: IAppleClangLibrary[],
 	) {
+		this.type = type;
 		this.runtime = runtime;
 		this.pkgConfig = pkgConfig;
 		this.objs = objs;
 		this.binaryPath = out;
-		this.pkgConfigPath = pkgConfigPath;
 		this.pkgConfigLibs = pkgConfigLibs;
 		this.libTargets = [];
 		for (const lib of libs) {
@@ -338,7 +284,16 @@ class AppleClangDylib implements IRule, IAppleClangLibrary {
 		const out = args.abs(this.binaryPath);
 
 		const clangArgs = baseClangArgs();
-		clangArgs.push('-dynamiclib');
+		switch (this.type) {
+			case ImageType.Dylib:
+				clangArgs.push('-dynamiclib');
+				break;
+			case ImageType.Executable:
+				break;
+			default:
+				throw new Error(`ImageType not handled: ${this.type}`);
+		}
+
 		clangArgs.push('-o', out, ...objs);
 
 		if (this.pkgConfigLibs.length) {

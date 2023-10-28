@@ -6,6 +6,13 @@
 #include <stdio.h>
 
 int main(int argc, char *argv[]) {
+#ifdef DEBUG
+  printf("DEBUG is defined\n");
+#endif
+#ifdef NDEBUG
+  printf("NDEBUG is defined\n");
+#endif
+
   printf("Hello world!\n");
   printf("foo() returns: %d\n", foo());
   printf("bar() returns: %d\n", bar());

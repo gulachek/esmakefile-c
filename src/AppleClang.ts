@@ -94,7 +94,14 @@ export class AppleClang implements ICompiler {
 		for (const tu of src) {
 			const out = Path.gen(tu.src, { ext: '.o' });
 			const json = Path.gen(tu.src, { ext: '.json' });
-			const obj = new AppleClangObject(pkgConfig, tu, out, json, imports);
+			const obj = new AppleClangObject(
+				pkgConfig,
+				tu,
+				out,
+				json,
+				imports,
+				opts.isDebug,
+			);
 			this.compileCommands.add(json);
 			objPaths.push(out);
 			book.add(obj);
@@ -125,7 +132,14 @@ export class AppleClang implements ICompiler {
 		for (const tu of src) {
 			const out = Path.gen(tu.src, { ext: '.o' });
 			const json = Path.gen(tu.src, { ext: '.json' });
-			const obj = new AppleClangObject(pkgConfig, tu, out, json, imports);
+			const obj = new AppleClangObject(
+				pkgConfig,
+				tu,
+				out,
+				json,
+				imports,
+				opts.isDebug,
+			);
 			this.compileCommands.add(json);
 			objPaths.push(out);
 			book.add(obj);
@@ -161,6 +175,7 @@ class AppleClangObject implements IRule {
 	out: IBuildPath;
 	json: IBuildPath;
 	pkgConfigLibs: PkgSearchable[];
+	isDebug: boolean;
 
 	constructor(
 		pkgConfig: PkgConfig,
@@ -168,12 +183,14 @@ class AppleClangObject implements IRule {
 		out: IBuildPath,
 		json: IBuildPath,
 		pkgConfigLibs: PkgSearchable[],
+		isDebug: boolean,
 	) {
 		this.pkgConfig = pkgConfig;
 		this.translationUnit = src;
 		this.out = out;
 		this.json = json;
 		this.pkgConfigLibs = pkgConfigLibs || [];
+		this.isDebug = isDebug;
 	}
 
 	prereqs() {
@@ -196,8 +213,6 @@ class AppleClangObject implements IRule {
 		);
 
 		const includePaths = new Set(this.translationUnit.includePaths);
-		const definitions = { ...this.translationUnit.definitions };
-
 		let clang: string;
 		let langArg: string;
 
@@ -210,12 +225,27 @@ class AppleClangObject implements IRule {
 		}
 
 		const clangArgs = baseClangArgs();
-		clangArgs.push('-g', '-c', src, '-MJ', json, '-o', obj);
+		clangArgs.push('-c', src, '-MJ', json, '-o', obj);
 		clangArgs.push(`-std=${langArg}`);
 
 		for (const i of includePaths) {
 			clangArgs.push('-I', i);
 		}
+
+		const baseDefinitions: Record<string, string> = {};
+
+		if (this.isDebug) {
+			baseDefinitions.DEBUG = '';
+			clangArgs.push('-g');
+		} else {
+			baseDefinitions.NDEBUG = '';
+			clangArgs.push('-O3');
+		}
+
+		const definitions = {
+			...baseDefinitions,
+			...this.translationUnit.definitions,
+		};
 
 		for (const key in definitions) {
 			const val = definitions[key];

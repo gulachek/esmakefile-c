@@ -52,6 +52,7 @@ export interface IExecutableOpts {
 	src: TranslationUnit[];
 	link: Linkable[];
 	runtime: RuntimeLanguage;
+	isDebug: boolean;
 }
 
 export interface ILibraryOpts {
@@ -61,6 +62,7 @@ export interface ILibraryOpts {
 	src: TranslationUnit[];
 	link: Linkable[];
 	runtime: RuntimeLanguage;
+	isDebug: boolean;
 
 	// API
 	includePaths: Set<string>;

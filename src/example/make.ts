@@ -4,6 +4,7 @@ import { C, platformCompiler } from '../index.js';
 cli((book, opts) => {
 	const compiler = platformCompiler();
 
+	console.log(opts);
 	const c = new C(compiler, {
 		...opts,
 		book,

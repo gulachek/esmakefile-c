@@ -20,9 +20,11 @@ export class C<TCompiler extends ICompiler> {
 	private _compiler: TCompiler;
 	private _cVersion: CVersion | null;
 	private _cxxVersion: CxxVersion | null;
+	private _isDebug: boolean;
 
 	constructor(compiler: TCompiler, opts: ICOpts | ICxxOpts) {
 		this._book = opts.book;
+		this._isDebug = opts.isDevelopment;
 		this._compiler = compiler;
 		this._cVersion = opts.cVersion || null;
 		this._cxxVersion = opts.cxxVersion || null;
@@ -52,6 +54,7 @@ export class C<TCompiler extends ICompiler> {
 		this._compiler.addExecutable(this._book, {
 			output,
 			src,
+			isDebug: this._isDebug,
 			runtime: this._runtimeLang(src),
 			link: opts.link || [],
 		});
@@ -83,6 +86,7 @@ export class C<TCompiler extends ICompiler> {
 			definitions: defs,
 			cVersion: this._cVersion,
 			link: opts.link || [],
+			isDebug: this._isDebug,
 		});
 	}
 
@@ -141,16 +145,19 @@ export class C<TCompiler extends ICompiler> {
 	}
 }
 
-export interface ICOpts {
+export interface IBaseCOpts {
 	book: Cookbook;
-	cVersion: CVersion;
-	cxxVersion?: CxxVersion;
+	isDevelopment: boolean;
+	cVersion?: CVersion;
+	cxxVersion: CxxVersion;
 }
 
-export interface ICxxOpts {
-	book: Cookbook;
+export interface ICOpts extends IBaseCOpts {
+	cVersion: CVersion;
+}
+
+export interface ICxxOpts extends IBaseCOpts {
 	cxxVersion: CxxVersion;
-	cVersion?: CVersion;
 }
 
 export interface IAddExecutableOpts {

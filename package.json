@@ -8,7 +8,7 @@
 	"scripts": {
 		"build": "tsc",
 		"test": "nyc mocha",
-		"example": "node dist/example/make.js --source-root src/example"
+		"example": "node dist/example/make.js --development --source-root src/example"
 	},
 	"keywords": [],
 	"author": "Nicholas Gulachek",

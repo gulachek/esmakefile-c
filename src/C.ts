@@ -63,6 +63,13 @@ export class C<TCompiler extends ICompiler> {
 		}
 
 		const defs = opts.definitions || {};
+		if (!('DEBUG' in defs || 'NDEBUG' in defs)) {
+			if (this._isDebug) {
+				defs.DEBUG = '';
+			} else {
+				defs.NDEBUG = '';
+			}
+		}
 
 		const src = opts.src.map((s) =>
 			this._makeTranslationUnit(s, includes, defs),

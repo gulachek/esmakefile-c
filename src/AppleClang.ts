@@ -181,18 +181,13 @@ class AppleClangObject implements IRule {
 			clangArgs.push('-I', i);
 		}
 
-		const baseDefinitions: Record<string, string> = {};
-
 		if (this.isDebug) {
-			baseDefinitions.DEBUG = '';
 			clangArgs.push('-g');
 		} else {
-			baseDefinitions.NDEBUG = '';
 			clangArgs.push('-O3');
 		}
 
 		const definitions = {
-			...baseDefinitions,
 			...this.translationUnit.definitions,
 		};
 

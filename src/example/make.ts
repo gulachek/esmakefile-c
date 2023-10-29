@@ -11,7 +11,7 @@ cli((book, opts) => {
 		cxxVersion: 'C++20',
 	});
 
-	book.add('all', [Path.build('hello'), Path.build('compile_commands.json')]);
+	book.add('all', []);
 
 	const lib = c.addLibrary({
 		name: 'foo',
@@ -28,11 +28,13 @@ cli((book, opts) => {
 		src: ['foo/foo.c', 'foo/bar.cpp'],
 	});
 
-	c.addExecutable({
+	const hello = c.addExecutable({
 		name: 'hello',
 		src: ['src/hello.c'],
 		link: [lib, 'zlib', 'sqlite3', 'core-graphics'],
 	});
 
-	c.addCompileCommands();
+	const compileCommands = c.addCompileCommands();
+
+	book.add('all', [hello, compileCommands]);
 });

@@ -43,8 +43,10 @@ export class AppleClang implements ICompiler {
 		return { libs, imports };
 	}
 
-	addCompileCommands(book: Cookbook): void {
-		book.add(new ClangCompileCommands(this.compileCommands));
+	addCompileCommands(book: Cookbook): IBuildPath {
+		const rule = new ClangCompileCommands(this.compileCommands);
+		book.add(rule);
+		return rule.json;
 	}
 
 	private _compileAndLink(
@@ -89,12 +91,13 @@ export class AppleClang implements ICompiler {
 		book.add(image);
 	}
 
-	addExecutable(book: Cookbook, opts: IExecutableOpts): void {
+	addExecutable(book: Cookbook, opts: IExecutableOpts): IBuildPath {
 		const { outputDirectory, name } = opts;
 		const output = outputDirectory.join(name);
 		const pkgConfig = new PkgConfig(book);
 
 		this._compileAndLink(book, pkgConfig, output, ImageType.Executable, opts);
+		return output;
 	}
 
 	addLibrary(book: Cookbook, opts: ILibraryOpts): IBuildPath {

@@ -34,11 +34,11 @@ export class C<TCompiler extends ICompiler> {
 
 	// TODO - this shouldn't be necessary. Should be able to dynamicall
 	// add dependencies
-	public addCompileCommands(): void {
-		this._compiler.addCompileCommands(this._book);
+	public addCompileCommands(): IBuildPath {
+		return this._compiler.addCompileCommands(this._book);
 	}
 
-	public addExecutable(opts: IAddExecutableOpts): void {
+	public addExecutable(opts: IAddExecutableOpts): IBuildPath {
 		return this._compiler.addExecutable(this._book, this._normalizeOpts(opts));
 	}
 

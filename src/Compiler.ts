@@ -39,12 +39,12 @@ export function isC(tu: TranslationUnit): tu is ICTranslationUnit {
  */
 export interface ICompiler<TLibraryOpts extends ILibraryOpts = ILibraryOpts> {
 	/** Compile and link an executable */
-	addExecutable(book: Cookbook, opts: IExecutableOpts): void;
+	addExecutable(book: Cookbook, opts: IExecutableOpts): IBuildPath;
 
 	/** Compile and (optionally) link a library */
 	addLibrary(book: Cookbook, opts: TLibraryOpts): IBuildPath;
 
-	addCompileCommands(book: Cookbook): void;
+	addCompileCommands(book: Cookbook): IBuildPath;
 }
 
 export interface IExecutableOpts {

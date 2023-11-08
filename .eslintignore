@@ -1,1 +1,7 @@
 dist
+types
+coverage
+build
+nyc_output
+.cache
+node_modules

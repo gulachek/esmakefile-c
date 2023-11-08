@@ -8,6 +8,7 @@
 	"scripts": {
 		"build": "tsc",
 		"test": "nyc mocha",
+		"lint": "eslint .",
 		"example": "node dist/example/make.js --development --source-root src/example"
 	},
 	"keywords": [],

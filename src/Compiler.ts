@@ -18,6 +18,7 @@ export interface ICTranslationUnit {
 	cVersion: CVersion;
 	includePaths: Set<string>;
 	definitions: Record<string, string>;
+	precompiledHeader?: Path;
 }
 
 export interface ICxxTranslationUnit {
@@ -25,6 +26,7 @@ export interface ICxxTranslationUnit {
 	cxxVersion: CxxVersion;
 	includePaths: Set<string>;
 	definitions: Record<string, string>;
+	precompiledHeader?: Path;
 }
 
 export type TranslationUnit = ICTranslationUnit | ICxxTranslationUnit;

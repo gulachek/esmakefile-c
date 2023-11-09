@@ -23,9 +23,10 @@ cli((book, opts) => {
 		privateDefinitions: {
 			EXPORT_FOO_API: '',
 		},
+		precompiledHeader: 'foo/include/pch.hpp',
 		includePaths: ['foo/include'],
 		privateIncludes: ['foo/private'],
-		src: ['foo/foo.c', 'foo/bar.cpp'],
+		src: ['foo/foo.cpp', 'foo/bar.cpp'],
 	});
 
 	const hello = c.addExecutable({

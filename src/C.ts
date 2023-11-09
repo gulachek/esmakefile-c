@@ -86,8 +86,10 @@ export class C<TCompiler extends ICompiler> {
 			}
 		}
 
+		const pch = opts.precompiledHeader && Path.src(opts.precompiledHeader);
+
 		const src = opts.src.map((s) =>
-			this._makeTranslationUnit(s, includes, defs),
+			this._makeTranslationUnit(s, includes, defs, pch),
 		);
 
 		return {
@@ -115,8 +117,17 @@ export class C<TCompiler extends ICompiler> {
 		src: PathLike,
 		includes: Set<string>,
 		defs: Record<string, string>,
+		precompiledHeader?: Path,
 	): TranslationUnit {
 		const srcPath = Path.src(src);
+
+		const base = {
+			src: srcPath,
+			includePaths: includes,
+			definitions: defs,
+			precompiledHeader,
+		};
+
 		if (srcPath.extname === '.c') {
 			if (!this._cVersion) {
 				throw new Error(
@@ -125,10 +136,8 @@ export class C<TCompiler extends ICompiler> {
 			}
 
 			return {
-				src: srcPath,
+				...base,
 				cVersion: this._cVersion,
-				includePaths: includes,
-				definitions: defs,
 			};
 		}
 
@@ -150,10 +159,8 @@ export class C<TCompiler extends ICompiler> {
 		}
 
 		return {
-			src: srcPath,
+			...base,
 			cxxVersion: this._cxxVersion,
-			includePaths: includes,
-			definitions: defs,
 		};
 	}
 }
@@ -182,6 +189,7 @@ export interface IAddExecutableOpts {
 	includePaths?: Iterable<PathLike>;
 	definitions?: Record<string, string>;
 	link?: Linkable[];
+	precompiledHeader?: PathLike;
 }
 
 export interface IAddLibraryOpts extends IAddExecutableOpts {

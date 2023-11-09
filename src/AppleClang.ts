@@ -65,6 +65,9 @@ export class AppleClang implements ICompiler {
 		for (const tu of src) {
 			const out = Path.gen(tu.src, { ext: '.o' });
 			const json = Path.gen(tu.src, { ext: '.json' });
+			const pchSrc = tu.precompiledHeader;
+			const pch = pchSrc && Path.build(pchSrc.rel() + '.pch');
+
 			const obj = new AppleClangObject(
 				pkgConfig,
 				tu,
@@ -72,10 +75,34 @@ export class AppleClang implements ICompiler {
 				json,
 				imports,
 				opts.isDebug,
+				pch,
 			);
 			this.compileCommands.add(json);
 			objPaths.push(out);
 			book.add(obj);
+
+			if (pch && book.targets().indexOf(pch.rel()) === -1) {
+				book.add(pch, [pchSrc], (args) => {
+					const clangArgs = baseClangArgs();
+
+					let clang: string;
+					let langArg: string;
+					if (isC(tu)) {
+						clang = 'clang';
+						langArg = tu.cVersion.toLowerCase();
+					} else {
+						clang = 'clang++';
+						langArg = tu.cxxVersion.toLowerCase();
+					}
+
+					clangArgs.push(`-std=${langArg}`);
+					clangArgs.push('-fvisibility=hidden');
+					clangArgs.push(args.abs(pchSrc));
+					clangArgs.push('-o', args.abs(pch));
+
+					return args.spawn(clang, clangArgs);
+				});
+			}
 		}
 
 		const image = new AppleClangLinkedImage(
@@ -138,6 +165,7 @@ class AppleClangObject implements IRule {
 	depfile: IBuildPath;
 	pkgConfigLibs: PkgSearchable[];
 	isDebug: boolean;
+	pch?: IBuildPath;
 
 	constructor(
 		pkgConfig: PkgConfig,
@@ -146,6 +174,7 @@ class AppleClangObject implements IRule {
 		json: IBuildPath,
 		pkgConfigLibs: PkgSearchable[],
 		isDebug: boolean,
+		pch?: IBuildPath,
 	) {
 		this.pkgConfig = pkgConfig;
 		this.translationUnit = src;
@@ -154,14 +183,20 @@ class AppleClangObject implements IRule {
 		this.depfile = Path.gen(src.src, { ext: '.deps' });
 		this.pkgConfigLibs = pkgConfigLibs || [];
 		this.isDebug = isDebug;
+		this.pch = pch;
 	}
 
 	prereqs() {
-		const pkgPaths: Path[] = [];
+		const reqs: Path[] = [this.translationUnit.src];
 		for (const p of this.pkgConfigLibs) {
-			if (p instanceof Path) pkgPaths.push(p);
+			if (p instanceof Path) reqs.push(p);
 		}
-		return [this.translationUnit.src, ...pkgPaths];
+
+		if (this.pch) {
+			reqs.push(this.pch);
+		}
+
+		return reqs;
 	}
 
 	targets() {
@@ -175,6 +210,8 @@ class AppleClangObject implements IRule {
 			this.json,
 			this.depfile,
 		);
+
+		const pch: string | undefined = this.pch && args.abs(this.pch);
 
 		const includePaths = new Set(this.translationUnit.includePaths);
 		let clang: string;
@@ -194,6 +231,7 @@ class AppleClangObject implements IRule {
 		clangArgs.push('-fvisibility=hidden');
 		clangArgs.push('-MJ', json);
 		clangArgs.push('-MMD', '-MF', deps);
+		pch && clangArgs.push('-include-pch', pch);
 
 		for (const i of includePaths) {
 			clangArgs.push('-I', i);

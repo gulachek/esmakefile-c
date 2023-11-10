@@ -13,6 +13,7 @@ import { isFailure, PkgConfig, PkgSearchable } from './PkgConfig.js';
 import { Cookbook, IBuildPath, IRule, Path, RecipeArgs } from 'esmakefile';
 
 import { open, readFile } from 'node:fs/promises';
+import { parsePrereqs } from './makeDepfile.js';
 
 interface IAppleClangLibrary {
 	binaryPath: IBuildPath;
@@ -272,11 +273,9 @@ class AppleClangObject implements IRule {
 		if (!result) return false;
 
 		const depfileContents = await readFile(deps, 'utf8');
-		const lines = depfileContents.split(/\\\n/);
-
-		// first line is target
-		for (let i = 1; i < lines.length; ++i) {
-			args.addPostreq(lines[i].trim());
+		const postreqs = await parsePrereqs(depfileContents);
+		for (const p of postreqs) {
+			args.addPostreq(p);
 		}
 
 		return true;
